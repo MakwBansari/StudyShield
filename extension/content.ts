@@ -13,8 +13,8 @@ window.addEventListener('message', (event) => {
       chrome.storage.local.set({ todayTotalMinutes: (res.todayTotalMinutes || 0) + event.data.payload.minutes });
     });
   } else if (event.data.action === 'GET_ESCAPES') {
-    chrome.storage.local.get(['escapeCount'], (res) => {
-      window.postMessage({ type: 'FROM_EXTENSION', action: 'ESCAPES_DATA', payload: res.escapeCount || 0 }, '*');
+    chrome.storage.local.get(['escapeLog'], (res) => {
+      window.postMessage({ type: 'FROM_EXTENSION', action: 'ESCAPES_DATA', payload: res.escapeLog || [] }, '*');
     });
   } else if (event.data.action === 'GET_TOTAL_TIME') {
     chrome.storage.local.get(['todayTotalMinutes'], (res) => {

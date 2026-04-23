@@ -52,10 +52,13 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   if (details.frameId === 0) {
     // If navigation is to blocked.html, it's an intercepted request
     if (details.url.includes(chrome.runtime.id) && details.url.includes('blocked.html')) {
-      const data = await chrome.storage.local.get(['studying', 'escapeCount']);
+      const data = await chrome.storage.local.get(['studying', 'escapeCount', 'subject', 'escapeLog']);
       if (data.studying) {
         const count = (data.escapeCount || 0) + 1;
-        await chrome.storage.local.set({ escapeCount: count });
+        const log = data.escapeLog || [];
+        log.push({ timestamp: Date.now(), subject: data.subject || 'Unknown' });
+        
+        await chrome.storage.local.set({ escapeCount: count, escapeLog: log });
       }
     }
   }

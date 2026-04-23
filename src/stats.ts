@@ -189,28 +189,38 @@ export const StatsUI = {
       }
     });
 
+    const totalHours = Object.values(subjectHours).reduce((a, b) => a + b, 0);
+
     tbody.innerHTML = GATE_SUBJECTS.map(subj => {
       const hours = subjectHours[subj.name];
-      const ratio = hours / subj.weightage;
+      const pctTime = totalHours > 0 ? (hours / totalHours) * 100 : 0;
+      const pctWeight = subj.weightage; // Weightage is out of 100
       
       let statusHtml = '';
       if (hours === 0) {
         statusHtml = '<span class="heatmap-warn">Needs Attention</span>';
-      } else if (ratio < 1) { // Arbitrary ratio, e.g. < 1h per mark
-        statusHtml = '<span class="heatmap-warn">Understudied</span>';
+      } else if (pctTime > pctWeight + 5) {
+        statusHtml = '<span class="heatmap-warn" style="color:var(--danger)">Over-investing</span>';
+      } else if (pctTime < pctWeight - 5) {
+        statusHtml = '<span class="heatmap-warn" style="color:var(--danger)">Under-investing</span>';
       } else {
-        statusHtml = '<span class="heatmap-ok">On Track</span>';
+        statusHtml = '<span class="heatmap-ok" style="color:var(--success)">On Track</span>';
       }
 
       return `
         <tr>
           <td>${subj.name}</td>
-          <td>${subj.weightage}</td>
-          <td>${hours.toFixed(1)}h</td>
+          <td>${subj.weightage}%</td>
+          <td>${hours.toFixed(1)}h (${pctTime.toFixed(1)}%)</td>
           <td>${statusHtml}</td>
         </tr>
       `;
-    }).sort((a, b) => b.includes('Needs Attention') ? 1 : -1).join('');
+    }).sort((a, b) => {
+      if (b.includes('Needs Attention')) return 1;
+      if (a.includes('Needs Attention')) return -1;
+      if (b.includes('investing')) return 1;
+      return -1;
+    }).join('');
   },
 
   async renderDistractionLog() {
@@ -218,7 +228,25 @@ export const StatsUI = {
     if (!distEl) return;
     
     const escapes = await StorageAPI.getExtensionEscapes();
-    distEl.textContent = `You tried to escape ${escapes} times recently. Stay focused!`;
+    const count = escapes.length;
+    
+    if (count === 0) {
+      distEl.textContent = `You had 0 distractions. Excellent focus!`;
+      return;
+    }
+
+    const subjectCounts: Record<string, number> = {};
+    escapes.forEach(e => {
+      const s = e.subject || 'Unknown';
+      subjectCounts[s] = (subjectCounts[s] || 0) + 1;
+    });
+
+    let worstSubj = Object.keys(subjectCounts)[0];
+    for (const s in subjectCounts) {
+      if (subjectCounts[s] > subjectCounts[worstSubj]) worstSubj = s;
+    }
+
+    distEl.innerHTML = `You tried to escape <strong>${count} times</strong> — mostly during <strong>${worstSubj}</strong>. Consider shorter sessions.`;
   },
 
   calculateFocusScore(sessions: StudySession[]) {
@@ -244,9 +272,17 @@ export const StatsUI = {
     let ptsStreak = Math.min(10, streak * 2);
 
     StorageAPI.getExtensionEscapes().then(escapes => {
-      let ptsPenalty = escapes * 5;
+      // Filter escapes to today
+      const todayEscapes = escapes.filter(e => {
+        const d = new Date(e.timestamp).toISOString().split('T')[0];
+        return d === today;
+      });
+      const escapeCount = todayEscapes.length;
       
-      let finalScore = Math.max(0, Math.min(100, ptsHours + ptsGoal + ptsStreak - ptsPenalty));
+      let ptsPenalty = escapeCount * 5; // 20 pts base, -5 per escape
+      let ptsDistractions = Math.max(0, 20 - ptsPenalty);
+      
+      let finalScore = Math.max(0, Math.min(100, ptsHours + ptsGoal + ptsStreak + ptsDistractions));
       
       let grade = 'C';
       if (finalScore >= 90) grade = 'A+';
@@ -255,8 +291,12 @@ export const StatsUI = {
       
       scoreEl.textContent = grade;
       detailsEl.innerHTML = `
-        ${totalHours.toFixed(1)}h studied <br>
-        ${escapes} escapes (-${ptsPenalty} pts)
+        <div style="font-size:0.9rem; text-align:left;">
+          <div>Hours: +${ptsHours.toFixed(0)}/40</div>
+          <div>Goals: +${ptsGoal.toFixed(0)}/30</div>
+          <div>Focus: +${ptsDistractions.toFixed(0)}/20 (${escapeCount} escapes)</div>
+          <div>Streak: +${ptsStreak}/10</div>
+        </div>
       `;
     });
   }
