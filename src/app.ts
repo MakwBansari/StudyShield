@@ -77,12 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const weakSelect = document.getElementById('ai-weak-subjects') as HTMLSelectElement;
 
   const settings = StorageAPI.getSettings();
-  let goals = settings.goals || GATE_SUBJECTS.map(s => ({
+  let goals = settings.goals && settings.goals.length > 0 ? settings.goals : GATE_SUBJECTS.map(s => ({
     subject: s.name,
-    isActive: s.name === 'General Aptitude' || s.name === 'Engineering Mathematics', // Default some to true
-    hoursTarget: 3,
-    frequencyDays: 1
+    isActive: true, // Default to all active to show subjects on dashboard
+    hoursTarget: 5,
+    frequencyDays: 7,
+    totalSyllabusHours: 50,
+    totalQuestions: 200
   }));
+
 
   const goalsList = document.getElementById('goals-list')!;
   
@@ -95,11 +98,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Populate dropdowns
     if (goal.isActive) {
-      const opt1 = document.createElement('option');
-      opt1.value = subj.name;
-      opt1.textContent = subj.name;
-      subjSelect.appendChild(opt1);
+      const allSubjSessions = StorageAPI.getSessions().filter(s => s.subject === subj.name);
+      const totalQs = allSubjSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+      
+      // Only show in timer if not completed
+      if (!goal.totalQuestions || totalQs < goal.totalQuestions) {
+        const opt1 = document.createElement('option');
+        opt1.value = subj.name;
+        opt1.textContent = subj.name;
+        subjSelect.appendChild(opt1);
+      }
     }
+
 
     const opt2 = document.createElement('option');
     opt2.value = subj.name;
@@ -143,22 +153,41 @@ document.addEventListener('DOMContentLoaded', () => {
       const relevantSessions = sessions.filter(s => s.subject === subj.name && (now - s.startTime) <= windowMs);
       const totalMinutes = relevantSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
       const totalHours = totalMinutes / 60;
+      
+      const allSubjSessions = sessions.filter(s => s.subject === subj.name);
+      const totalQs = allSubjSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+      
       const pct = Math.min(100, (totalHours / goal.hoursTarget) * 100);
+
+      // Auto-deactivation logic
+      if (goal.totalQuestions && totalQs >= goal.totalQuestions) {
+        // Subject is completed!
+        // We don't automatically save settings here to avoid side effects during render,
+        // but we show a badge and don't count it for active studying if needed.
+      }
 
       const div = document.createElement('div');
       div.className = 'subject-item';
+      if (goal.totalQuestions && totalQs >= goal.totalQuestions) {
+        div.classList.add('completed');
+      }
+      
       div.innerHTML = `
-        <div>
-          <span class="subj-name">${subj.name}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="subj-name">${subj.name} ${totalQs >= (goal.totalQuestions || Infinity) ? '✅' : ''}</span>
           <span class="subj-weight">${subj.weightage}m</span>
         </div>
         <div class="subj-progress">
-          <span>${totalHours.toFixed(1)}h / ${goal.hoursTarget}h (${goal.frequencyDays}d)</span>
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
+            <span>${totalHours.toFixed(1)}h / ${goal.hoursTarget}h (${goal.frequencyDays}d)</span>
+            <span>Qs: ${totalQs} / ${goal.totalQuestions || '-'}</span>
+          </div>
           <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
         </div>
       `;
       subjList?.appendChild(div);
     }
+
   });
 
   document.getElementById('btn-save-goals')?.addEventListener('click', () => {

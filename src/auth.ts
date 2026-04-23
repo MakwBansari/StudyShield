@@ -1,4 +1,6 @@
 import './common';
+import { GATE_SUBJECTS } from './subjects';
+
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const signupForm = document.getElementById('signup-form');
@@ -69,11 +71,19 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Initialize default study settings for the new user
       const defaultSettings = {
-        goals: [],
+        goals: GATE_SUBJECTS.map(s => ({
+          subject: s.name,
+          isActive: true,
+          hoursTarget: 3,
+          frequencyDays: 1,
+          totalSyllabusHours: 50, // Default estimate
+          totalQuestions: 200     // Default estimate
+        })),
         whitelist: whitelist,
         blacklist: blacklist
       };
       localStorage.setItem(`study_settings_${email}`, JSON.stringify(defaultSettings));
+
       
       window.location.href = 'dashboard.html';
     });
