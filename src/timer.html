@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Timer - StudyShield</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .timer-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      background-color: var(--bg-color);
+    }
+    
+    .centered-timer-container {
+      position: relative;
+    }
+
+    .timer-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(245, 166, 35, 0.15) 0%, rgba(10, 14, 26, 0) 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .timer-glow.active {
+      background: radial-gradient(circle, rgba(245, 166, 35, 0.3) 0%, rgba(10, 14, 26, 0) 70%);
+      animation: pulse 2s infinite;
+    }
+
+    .large-timer-display {
+      font-family: var(--font-mono);
+      font-size: 8rem;
+      font-weight: 700;
+      color: var(--accent);
+      position: relative;
+      z-index: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .timer-subject {
+      font-size: 2rem;
+      color: var(--text-main);
+      position: relative;
+      z-index: 1;
+      margin-bottom: 2rem;
+    }
+
+    .timer-topic {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+      margin-bottom: 2rem;
+      font-weight: 500;
+    }
+
+    .timer-controls {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .btn-timer {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body class="timer-body">
+  <div class="centered-timer-container">
+    <div class="timer-glow" id="timer-glow"></div>
+    <div class="large-timer-display" id="timer-display">00:00:00</div>
+    <div class="timer-subject" id="timer-subject-display" style="margin-bottom: 0.5rem;">Subject Name</div>
+    <div class="timer-topic" id="timer-topic-display"></div>
+    
+    <div class="timer-controls">
+      <button id="btn-pause" class="btn btn-secondary btn-timer">PAUSE</button>
+      <button id="btn-stop" class="btn btn-danger btn-timer">STOP</button>
+    </div>
+  </div>
+
+  <script src="timer-page.js"></script>
+</body>
+</html>
