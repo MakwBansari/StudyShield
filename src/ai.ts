@@ -1,4 +1,4 @@
-export async function generateStudyPlan(apiKey: string, weakSubjects: string[], examDate: string, dailyHours: number) {
+export async function generateStudyPlan(apiKey: string, weakSubjects: string[], examDate: string, dailyHours: number, currentProgress: any) {
   if (!apiKey || weakSubjects.length === 0 || !examDate) {
     throw new Error('Please fill all required fields and provide an API key.');
   }
@@ -8,6 +8,10 @@ export async function generateStudyPlan(apiKey: string, weakSubjects: string[], 
   Exam Date: ${examDate}.
   Available daily study hours: ${dailyHours} hours.
   
+  Current Progress Context:
+  ${JSON.stringify(currentProgress, null, 2)}
+  (Use this to avoid assigning topics they have heavily studied recently unless it's their weak subject)
+
   Return ONLY valid JSON in this structure:
   {
     "plan": [
