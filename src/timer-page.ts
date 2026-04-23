@@ -1,4 +1,5 @@
 import { Timer } from './timer';
+import './common';
 import { StorageAPI } from './storage';
 
 document.addEventListener('DOMContentLoaded', () => {

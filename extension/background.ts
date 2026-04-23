@@ -18,32 +18,54 @@ async function updateBlockingRules(isStudying: boolean) {
   const existingRuleIds = existingRules.map(r => r.id);
 
   if (!isStudying) {
-    // Clear rules
     await chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: existingRuleIds
     });
     return;
   }
 
-  // Set up block all rule except whitelist
-  const blockRule = {
-    id: 1,
+  const data = await chrome.storage.local.get(['whitelist', 'blacklist']);
+  const userWhitelist = data.whitelist || [];
+  const userBlacklist = data.blacklist || [];
+
+  const internalWhitelist = ['localhost', '127.0.0.1', chrome.runtime.id];
+  const combinedWhitelist = [...new Set([...internalWhitelist, ...userWhitelist])];
+
+  const rules: chrome.declarativeNetRequest.Rule[] = [];
+
+  // Rule 1: High Priority - Block specific blacklist
+  if (userBlacklist.length > 0) {
+    rules.push({
+      id: 1,
+      priority: 2,
+      action: {
+        type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
+        redirect: { extensionPath: '/blocked.html' }
+      },
+      condition: {
+        resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
+        requestDomains: userBlacklist
+      }
+    });
+  }
+
+  // Rule 2: Lower Priority - Block everything else except whitelist
+  rules.push({
+    id: 2,
     priority: 1,
     action: {
       type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
-      redirect: {
-        extensionPath: '/blocked.html'
-      }
+      redirect: { extensionPath: '/blocked.html' }
     },
     condition: {
       resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
-      excludedRequestDomains: WHITELIST_DOMAINS
+      excludedRequestDomains: combinedWhitelist
     }
-  };
+  });
 
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: existingRuleIds,
-    addRules: [blockRule]
+    addRules: rules
   });
 }
 

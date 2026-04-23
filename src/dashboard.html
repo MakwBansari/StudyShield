@@ -28,6 +28,7 @@
         <button class="nav-btn" data-tab="stats">Statistics</button>
         <button class="nav-btn" data-tab="goals">Study Goals</button>
         <button class="nav-btn" data-tab="ai">AI Planner</button>
+        <button class="nav-btn" data-tab="profile">Profile</button>
       </nav>
 
       <div class="whitelist-panel">
@@ -46,6 +47,14 @@
     </aside>
 
     <main class="main-content">
+      <header class="top-nav">
+        <h2 id="page-title">Dashboard</h2>
+        <div class="user-controls">
+          <span id="user-name-display">User</span>
+          <button id="btn-logout" class="btn btn-secondary btn-small">Log Out</button>
+        </div>
+      </header>
+
       <!-- DASHBOARD TAB -->
       <section id="tab-dashboard" class="tab-content active">
         <div class="dashboard-grid">
@@ -198,6 +207,29 @@
 
           <div id="ai-plan-output" class="ai-plan-output hidden">
             <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE TAB -->
+      <section id="tab-profile" class="tab-content">
+        <div class="card profile-card">
+          <h2>Your Profile</h2>
+          <div class="profile-info">
+            <div class="info-group">
+              <label>Name</label>
+              <div id="profile-name">--</div>
+            </div>
+            <div class="info-group">
+              <label>Email</label>
+              <div id="profile-email">--</div>
+            </div>
+          </div>
+          
+          <div class="danger-zone" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+            <h3 style="color: var(--danger); border: none; margin-bottom: 0.5rem;">Danger Zone</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Resetting your data will permanently delete all study sessions and settings.</p>
+            <button id="btn-reset-data" class="btn btn-danger">Reset All Study Data</button>
           </div>
         </div>
       </section>

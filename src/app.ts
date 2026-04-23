@@ -1,3 +1,4 @@
+import './common';
 import { StorageAPI } from './storage';
 import { GATE_SUBJECTS, getDueRevisions } from './subjects';
 import { Timer } from './timer';
@@ -23,11 +24,52 @@ document.addEventListener('DOMContentLoaded', () => {
       const targetId = `tab-${(btn as HTMLElement).dataset.tab}`;
       document.getElementById(targetId)?.classList.add('active');
 
+      // Update page title
+      const pageTitle = document.getElementById('page-title');
+      if (pageTitle) {
+        pageTitle.textContent = btn.textContent;
+      }
+
       if (targetId === 'tab-stats') {
         StatsUI.renderStatsTab(StorageAPI.getSessions());
       }
     });
   });
+
+  // --- AUTH GUARD & LOGOUT ---
+  const currentUser = localStorage.getItem('currentUser');
+  if (!currentUser) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  const userDisplay = document.getElementById('user-name-display');
+  const profileName = document.getElementById('profile-name');
+  const profileEmail = document.getElementById('profile-email');
+  
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const userData = users[currentUser];
+
+  if (userData) {
+    if (userDisplay) userDisplay.textContent = userData.name;
+    if (profileName) profileName.textContent = userData.name;
+    if (profileEmail) profileEmail.textContent = currentUser;
+  }
+
+  document.getElementById('btn-logout')?.addEventListener('click', () => {
+    localStorage.removeItem('currentUser');
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('btn-reset-data')?.addEventListener('click', () => {
+    if (confirm('Are you SURE you want to delete all study data? This cannot be undone.')) {
+      localStorage.removeItem('study_sessions');
+      localStorage.removeItem('study_settings');
+      alert('Data reset successfully.');
+      location.reload();
+    }
+  });
+
 
   // --- INITIALIZE UI ---
   const subjSelect = document.getElementById('timer-subject') as HTMLSelectElement;

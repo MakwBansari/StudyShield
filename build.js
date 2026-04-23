@@ -56,6 +56,15 @@ const buildOptions = {
     sourcemap: isDev,
     minify: !isDev,
   },
+  webLanding: {
+    entryPoints: ['src/landing.ts'],
+    bundle: true,
+    outfile: 'docs/landing.js',
+    format: 'iife',
+    target: 'es2020',
+    sourcemap: isDev,
+    minify: !isDev,
+  },
   extBackground: {
     entryPoints: ['extension/background.ts'],
     bundle: true,
@@ -103,6 +112,7 @@ async function run() {
     contexts.push(await esbuild.context(buildOptions.webDashboard));
     contexts.push(await esbuild.context(buildOptions.webAuth));
     contexts.push(await esbuild.context(buildOptions.webTimer));
+    contexts.push(await esbuild.context(buildOptions.webLanding));
   }
   contexts.push(await esbuild.context(buildOptions.extBackground));
   contexts.push(await esbuild.context(buildOptions.extPopup));

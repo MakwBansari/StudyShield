@@ -29,12 +29,17 @@ export interface Settings {
   examDate?: string;
   anthropicApiKey?: string;
   goals?: SubjectGoal[];
+  whitelist?: string[];
+  blacklist?: string[];
+  currentTimerSession?: any;
 }
 
 export const StorageAPI = {
   getSessions(): StudySession[] {
     try {
-      const data = localStorage.getItem('study_sessions');
+      const email = localStorage.getItem('currentUser');
+      const key = email ? `study_sessions_${email}` : 'study_sessions';
+      const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
@@ -42,14 +47,18 @@ export const StorageAPI = {
   },
 
   saveSession(session: StudySession) {
+    const email = localStorage.getItem('currentUser');
+    const key = email ? `study_sessions_${email}` : 'study_sessions';
     const sessions = this.getSessions();
     sessions.push(session);
-    localStorage.setItem('study_sessions', JSON.stringify(sessions));
+    localStorage.setItem(key, JSON.stringify(sessions));
   },
 
   getSettings(): Settings {
     try {
-      const data = localStorage.getItem('study_settings');
+      const email = localStorage.getItem('currentUser');
+      const key = email ? `study_settings_${email}` : 'study_settings';
+      const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : {};
     } catch {
       return {};
@@ -57,15 +66,24 @@ export const StorageAPI = {
   },
 
   saveSettings(settings: Settings) {
+    const email = localStorage.getItem('currentUser');
+    const key = email ? `study_settings_${email}` : 'study_settings';
     const current = this.getSettings();
-    localStorage.setItem('study_settings', JSON.stringify({ ...current, ...settings }));
+    localStorage.setItem(key, JSON.stringify({ ...current, ...settings }));
   },
 
   setExtensionStudying(isStudying: boolean, subject?: string, startTime?: number) {
+    const settings = this.getSettings();
     window.postMessage({
       type: 'FROM_PAGE',
       action: 'SET_STUDYING',
-      payload: { isStudying, subject, startTime }
+      payload: { 
+        isStudying, 
+        subject, 
+        startTime,
+        whitelist: settings.whitelist || [],
+        blacklist: settings.blacklist || []
+      }
     }, '*');
   },
 

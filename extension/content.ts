@@ -4,7 +4,14 @@ window.addEventListener('message', (event) => {
   if (event.data.action === 'SET_STUDYING') {
     const p = event.data.payload;
     if (p.isStudying) {
-      chrome.storage.local.set({ studying: true, subject: p.subject, startTime: p.startTime, escapeCount: 0 });
+      chrome.storage.local.set({ 
+        studying: true, 
+        subject: p.subject, 
+        startTime: p.startTime, 
+        escapeCount: 0,
+        whitelist: p.whitelist || [],
+        blacklist: p.blacklist || []
+      });
     } else {
       chrome.storage.local.set({ studying: false });
     }
