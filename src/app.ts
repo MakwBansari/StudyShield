@@ -1,5 +1,5 @@
 import { StorageAPI } from './storage';
-import { GATE_SUBJECTS } from './subjects';
+import { GATE_SUBJECTS, getDueRevisions } from './subjects';
 import { Timer } from './timer';
 import { StatsUI } from './stats';
 import { generateStudyPlan } from './ai';
@@ -48,19 +48,21 @@ document.addEventListener('DOMContentLoaded', () => {
   subjList!.innerHTML = '';
 
   GATE_SUBJECTS.forEach((subj, index) => {
+    // Get Goal
+    const goal = goals.find(g => g.subject === subj.name) || goals[0];
+
     // Populate dropdowns
-    const opt1 = document.createElement('option');
-    opt1.value = subj.name;
-    opt1.textContent = subj.name;
-    subjSelect.appendChild(opt1);
+    if (goal.isActive) {
+      const opt1 = document.createElement('option');
+      opt1.value = subj.name;
+      opt1.textContent = subj.name;
+      subjSelect.appendChild(opt1);
+    }
 
     const opt2 = document.createElement('option');
     opt2.value = subj.name;
     opt2.textContent = subj.name;
     weakSelect.appendChild(opt2);
-
-    // Get Goal
-    const goal = goals.find(g => g.subject === subj.name) || goals[0];
 
     // Populate Goals Tab
     const goalDiv = document.createElement('div');
@@ -77,11 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <input type="checkbox" id="goal-active-${index}" ${goal.isActive ? 'checked' : ''}>
         <span style="font-weight: 500;">${subj.name}</span>
       </label>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <input type="number" id="goal-hours-${index}" class="input" value="${goal.hoursTarget}" min="1" max="24" style="width: 70px; margin: 0;"> hrs
-      </div>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        every <input type="number" id="goal-freq-${index}" class="input" value="${goal.frequencyDays}" min="1" max="30" style="width: 70px; margin: 0;"> days
+      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="number" id="goal-hours-${index}" class="input" value="${goal.hoursTarget}" min="1" max="24" style="width: 60px; margin: 0; padding: 0.25rem;"> hrs
+          / <input type="number" id="goal-freq-${index}" class="input" value="${goal.frequencyDays}" min="1" max="30" style="width: 60px; margin: 0; padding: 0.25rem;"> days
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+          Tot. Hrs: <input type="number" id="goal-total-hrs-${index}" class="input" value="${goal.totalSyllabusHours || ''}" min="1" placeholder="-" style="width: 60px; margin: 0; padding: 0.25rem;">
+          Tot. Qs: <input type="number" id="goal-total-qs-${index}" class="input" value="${goal.totalQuestions || ''}" min="1" placeholder="-" style="width: 60px; margin: 0; padding: 0.25rem;">
+        </div>
       </div>
     `;
     goalsList.appendChild(goalDiv);
@@ -118,7 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
       subject: subj.name,
       isActive: (document.getElementById(`goal-active-${index}`) as HTMLInputElement).checked,
       hoursTarget: parseFloat((document.getElementById(`goal-hours-${index}`) as HTMLInputElement).value) || 3,
-      frequencyDays: parseInt((document.getElementById(`goal-freq-${index}`) as HTMLInputElement).value, 10) || 1
+      frequencyDays: parseInt((document.getElementById(`goal-freq-${index}`) as HTMLInputElement).value, 10) || 1,
+      totalSyllabusHours: parseFloat((document.getElementById(`goal-total-hrs-${index}`) as HTMLInputElement).value) || undefined,
+      totalQuestions: parseInt((document.getElementById(`goal-total-qs-${index}`) as HTMLInputElement).value, 10) || undefined
     }));
     StorageAPI.saveSettings({ goals: newGoals });
     alert('Goals saved successfully!');
@@ -150,6 +158,25 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('countdown-days')!.textContent = Math.max(0, diffDays).toString();
     }
     (document.getElementById('ai-exam-date') as HTMLInputElement).value = settings.examDate;
+
+    // Pace calculation
+    const currentGoals = settings.goals || [];
+    let totalTargetHours = 0;
+    currentGoals.forEach(g => {
+      if (g.isActive && g.totalSyllabusHours) {
+        totalTargetHours += g.totalSyllabusHours;
+      }
+    });
+    if (totalTargetHours === 0) totalTargetHours = 800; // Fallback
+
+    const totalStudiedMinutes = StorageAPI.getSessions().reduce((acc, s) => acc + s.durationMinutes, 0);
+    const totalStudiedHours = totalStudiedMinutes / 60;
+    const pacePct = Math.min(100, (totalStudiedHours / totalTargetHours) * 100);
+
+    const paceEl = document.getElementById('countdown-pace');
+    if (paceEl) {
+      paceEl.textContent = `Pace: ${pacePct.toFixed(1)}% covered`;
+    }
   }
   if (settings.anthropicApiKey) {
     (document.getElementById('ai-api-key') as HTMLInputElement).value = settings.anthropicApiKey;
@@ -164,7 +191,59 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Render initial dashboard
-  StatsUI.renderDashboard(StorageAPI.getSessions());
+  const sessions = StorageAPI.getSessions();
+  StatsUI.renderDashboard(sessions);
+
+  // Render Revisions
+  const dueRevisions = getDueRevisions(sessions);
+  const revList = document.getElementById('revision-list')!;
+  if (dueRevisions.length > 0) {
+    revList.innerHTML = dueRevisions.map(r => `
+      <div style="padding: 0.5rem; background: rgba(245, 166, 35, 0.1); border-left: 3px solid var(--accent); margin-bottom: 0.5rem;">
+        <div style="font-weight: 500; color: var(--accent);">${r.subject}</div>
+        <div style="font-size: 0.9rem;">Topic: ${r.topic}</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Studied ${r.daysAgo} days ago</div>
+      </div>
+    `).join('');
+  } else {
+    revList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No topics due for revision today. Great job!</p>';
+  }
+
+  // --- COMPLETED SUBJECT REVISION ALERT ---
+  const completedSubjectsToRevise: string[] = [];
+  const nowMs = Date.now();
+  
+  settings.goals?.forEach(goal => {
+    // Determine if it's completed
+    const subjSessions = sessions.filter(s => s.subject === goal.subject);
+    if (subjSessions.length === 0) return;
+    
+    const totalQs = subjSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+    const totalHrs = subjSessions.reduce((acc, s) => acc + s.durationMinutes, 0) / 60;
+    
+    const isCompleted = goal.isActive === false && (
+      (goal.totalQuestions && totalQs >= goal.totalQuestions) || 
+      (goal.totalSyllabusHours && totalHrs >= goal.totalSyllabusHours)
+    );
+
+    if (isCompleted) {
+      // Find last studied date
+      const lastStudied = Math.max(...subjSessions.map(s => s.startTime));
+      const daysSince = (nowMs - lastStudied) / (1000 * 60 * 60 * 24);
+      
+      // If it's been more than 7 days, trigger a revision alert
+      if (daysSince >= 7) {
+        completedSubjectsToRevise.push(goal.subject);
+      }
+    }
+  });
+
+  if (completedSubjectsToRevise.length > 0) {
+    // Use a slight timeout so it doesn't block the UI rendering immediately
+    setTimeout(() => {
+      alert(`🔔 REVISION REMINDER!\n\nYou have completed the following subjects, but haven't reviewed them in over 7 days:\n- ${completedSubjectsToRevise.join('\n- ')}\n\nConsider scheduling a short revision session to keep them fresh!`);
+    }, 1000);
+  }
 
   // Timer logic moved to timer-page.ts
 
@@ -176,6 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const activity = (document.getElementById('timer-activity') as HTMLSelectElement).value;
     const topic = (document.getElementById('timer-topic') as HTMLInputElement).value;
     const pomodoro = pomodoroCheck.checked;
+
+    if (!topic || topic.trim() === '') {
+      alert('Please enter a topic name for spaced repetition tracking before starting the timer.');
+      return;
+    }
 
     // Bulletproof: save to localStorage
     const current = StorageAPI.getSettings();
@@ -217,10 +301,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const outputEl = document.getElementById('ai-plan-output')!;
     outputEl.classList.remove('hidden');
-    outputEl.innerHTML = '<p>Generating plan...</p>';
+    outputEl.innerHTML = '<p>Generating personalized plan...</p>';
+
+    const sessionsData = StorageAPI.getSessions();
+    const progress: any = {};
+    sessionsData.forEach(s => {
+      if (!progress[s.subject]) progress[s.subject] = { hours: 0, qs: 0 };
+      progress[s.subject].hours += (s.durationMinutes / 60);
+      progress[s.subject].qs += (s.questionsSolved || 0);
+    });
 
     try {
-      const planRes = await generateStudyPlan(apiKey, weakSubjects, examDate, dailyHours);
+      const planRes = await generateStudyPlan(apiKey, weakSubjects, examDate, dailyHours, progress);
       if (planRes && planRes.plan) {
         outputEl.innerHTML = planRes.plan.map((d: any) => `
           <div class="ai-day">

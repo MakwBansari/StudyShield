@@ -1,3 +1,5 @@
+import { StudySession } from './storage';
+
 export interface SubjectDef {
   name: string;
   weightage: number; // Out of 100 marks
@@ -28,4 +30,39 @@ export function isRevisionDue(lastStudiedDate: number, intervalDays: number): bo
   const diffDays = (now - lastStudiedDate) / (1000 * 60 * 60 * 24);
   // It's due if the difference is greater than or equal to the interval
   return diffDays >= intervalDays;
+}
+
+export interface RevisionTopic {
+  subject: string;
+  topic: string;
+  daysAgo: number;
+}
+
+export function getDueRevisions(sessions: StudySession[]): RevisionTopic[] {
+  const topicMap = new Map<string, { subject: string, lastStudied: number }>();
+  
+  sessions.forEach(s => {
+    if (s.topic && s.topic.trim() !== '') {
+      const key = `${s.subject}:::${s.topic}`;
+      if (!topicMap.has(key) || s.startTime > topicMap.get(key)!.lastStudied) {
+        topicMap.set(key, { subject: s.subject, lastStudied: s.startTime });
+      }
+    }
+  });
+
+  const due: RevisionTopic[] = [];
+  const intervals = getSpacedRepetitionIntervals();
+  const now = Date.now();
+
+  topicMap.forEach((val, key) => {
+    const diffDays = Math.floor((now - val.lastStudied) / (1000 * 60 * 60 * 24));
+    const topic = key.split(':::')[1];
+    
+    // Check if it's within a +1 day window of an interval
+    if (diffDays > 0 && intervals.some(interval => diffDays === interval || diffDays === interval + 1)) {
+      due.push({ subject: val.subject, topic, daysAgo: diffDays });
+    }
+  });
+
+  return due;
 }
