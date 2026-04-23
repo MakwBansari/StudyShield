@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blocked by StudyShield</title>
+  <link rel="stylesheet" href="blocked.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="blocked-container">
+    <div class="lock-icon">🔒</div>
+    <h1>Focus Mode Active</h1>
+    <p>Get back to work. You are currently studying:</p>
+    <div class="subject" id="subject-name">--</div>
+    
+    <div class="timer">
+      <span id="elapsed-time">00:00:00</span> elapsed
+    </div>
+    
+    <div class="escapes">
+      You've tried to leave <span id="escape-count">0</span> times this session.
+    </div>
+
+    <div class="instruction">
+      No way out. Stop the timer on your main StudyShield dashboard if you must.
+    </div>
+  </div>
+  <script src="blocked.js"></script>
+</body>
+</html>

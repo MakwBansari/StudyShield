@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "GATE Focus Extension",
+  "version": "1.0",
+  "description": "Tab blocking and distraction tracking for Study Shield.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "webNavigation",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://localhost/*", "*://127.0.0.1/*", "*://*.github.io/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "GATE Focus"
+  }
+}

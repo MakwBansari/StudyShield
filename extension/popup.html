@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GATE Focus</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <h2>GATE Focus</h2>
+    
+    <div class="status-box" id="status-box">
+      Status: <span id="status-text">Not Studying</span>
+    </div>
+
+    <div class="stats">
+      Today's Total: <span id="today-total">0</span> mins
+    </div>
+
+    <button id="btn-emergency" class="btn" disabled>Emergency Break (5m)</button>
+    
+    <div id="break-status" class="break-status hidden">
+      Break active for: <span id="break-time">05:00</span>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
