@@ -59,6 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
   timer.onStopCallback = (durationSecs, phase) => {
     if (phase === 'study' && durationSecs > 60) {
       const durationMins = Math.round(durationSecs / 60);
+      
+      const qs = prompt('How many questions did you solve this session?', '0');
+      const doubts = prompt('Any unsolved doubts or notes?', '');
+
       const session = {
         id: Date.now().toString(),
         subject,
@@ -67,7 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
         startTime: activeStartTime,
         endTime: Date.now(),
         durationMinutes: durationMins,
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        questionsSolved: parseInt(qs || '0', 10),
+        unsolvedDoubts: doubts || undefined
       };
       StorageAPI.saveSession(session);
       StorageAPI.updateTotalStudyTime(session.durationMinutes);
@@ -88,6 +94,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (totalHours >= goal.hoursTarget) {
           alert(`Congratulations! You've hit your target of ${goal.hoursTarget} hours for ${subject} in this ${goal.frequencyDays}-day window! Time to change subjects!`);
+        }
+
+        // Check total questions syllabus goal
+        if (goal.totalQuestions) {
+          const subjSessions = allSessions.filter(s => s.subject === subject);
+          const totalQsSolved = subjSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+          
+          if (totalQsSolved >= goal.totalQuestions) {
+            alert(`Amazing! You've solved a total of ${totalQsSolved} questions, reaching your target of ${goal.totalQuestions} for ${subject}! This subject has been automatically marked as complete (deactivated).`);
+            goal.isActive = false;
+            StorageAPI.saveSettings({ goals });
+          }
         }
       }
     }

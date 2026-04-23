@@ -7,6 +7,13 @@ export interface StudySession {
   endTime: number;
   durationMinutes: number;
   date: string; // YYYY-MM-DD
+  questionsSolved?: number;
+  unsolvedDoubts?: string;
+}
+
+export interface ExtensionEscape {
+  timestamp: number;
+  subject?: string;
 }
 
 export interface SubjectGoal {
@@ -14,6 +21,8 @@ export interface SubjectGoal {
   isActive: boolean;
   hoursTarget: number;
   frequencyDays: number;
+  totalSyllabusHours?: number;
+  totalQuestions?: number;
 }
 
 export interface Settings {
@@ -60,12 +69,12 @@ export const StorageAPI = {
     }, '*');
   },
 
-  async getExtensionEscapes(): Promise<number> {
+  async getExtensionEscapes(): Promise<ExtensionEscape[]> {
     return new Promise(resolve => {
       const listener = (event: MessageEvent) => {
         if (event.source === window && event.data && event.data.type === 'FROM_EXTENSION' && event.data.action === 'ESCAPES_DATA') {
           window.removeEventListener('message', listener);
-          resolve(event.data.payload);
+          resolve(event.data.payload || []);
         }
       };
       window.addEventListener('message', listener);
@@ -74,7 +83,7 @@ export const StorageAPI = {
       // Fallback if extension not present
       setTimeout(() => {
         window.removeEventListener('message', listener);
-        resolve(0);
+        resolve([]);
       }, 500);
     });
   },
