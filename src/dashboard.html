@@ -26,6 +26,7 @@
       <nav class="main-nav">
         <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
         <button class="nav-btn" data-tab="stats">Statistics</button>
+        <button class="nav-btn" data-tab="mock">Mock Tests</button>
         <button class="nav-btn" data-tab="goals">Study Goals</button>
         <button class="nav-btn" data-tab="ai">AI Planner</button>
         <button class="nav-btn" data-tab="profile">Profile</button>
@@ -57,6 +58,21 @@
 
       <!-- DASHBOARD TAB -->
       <section id="tab-dashboard" class="tab-content active">
+        <div id="motivation-box" style="margin-bottom: 2.5rem; padding: 0 0.5rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">Daily Inspiration</div>
+          <h2 id="motivation-quote" class="animate-reveal" style="font-size: 2.2rem; font-weight: 700; color: var(--text-main); margin: 0; line-height: 1.2; letter-spacing: -0.5px;"></h2>
+        </div>
+
+        <div class="card full-width" style="margin-bottom: 2rem; padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 0.9rem; color: var(--text-muted); border: none; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Weekly Performance</h3>
+            <div id="weekly-summary-stats" style="display: flex; gap: 1.5rem; font-size: 0.9rem; font-weight: 600;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <div id="weekly-performance-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;"></div>
+        </div>
+        
         <div class="dashboard-grid">
           
           <!-- Timer Column -->
@@ -166,6 +182,45 @@
             <h3>Distraction Log</h3>
             <p id="distraction-summary">You tried to escape 0 times.</p>
           </div>
+
+          <div class="card full-width" id="focus-insights-card">
+            <h3>Focus Insights</h3>
+            <div id="weak-hour-insight" class="insight-box">
+              Analyzing your focus patterns...
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MOCK TESTS TAB -->
+      <section id="tab-mock" class="tab-content">
+        <div class="stats-grid">
+          <div class="card full-width">
+            <h3>Log New Mock Test</h3>
+            <form id="form-mock-test" class="ai-form">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                  <label>Test Name</label>
+                  <input type="text" id="mock-name" class="input" placeholder="e.g. MadeEasy Test 1" required>
+                </div>
+                <div>
+                  <label>Date</label>
+                  <input type="date" id="mock-date" class="input" required>
+                </div>
+              </div>
+              
+              <div id="mock-subject-scores" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <!-- Dynamically populated by JS -->
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem;">Save Test Score</button>
+            </form>
+          </div>
+
+          <div class="card full-width">
+            <h3>Performance Trend</h3>
+            <div id="mock-trend-chart" style="height: 300px; width: 100%; position: relative;"></div>
+          </div>
         </div>
       </section>
 
@@ -224,6 +279,29 @@
               <label>Email</label>
               <div id="profile-email">--</div>
             </div>
+          </div>
+
+          <div class="focus-settings" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);">
+            <h3 style="margin-bottom: 1.5rem;">Focus Settings</h3>
+            
+            <div class="info-group">
+              <label>Whitelist (One per line)</label>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">These sites will ALWAYS be accessible.</p>
+              <textarea id="profile-whitelist" class="input" style="height: 100px; resize: vertical;"></textarea>
+            </div>
+
+            <div class="info-group" style="margin-top: 1.5rem;">
+              <label>Blacklist (One per line)</label>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">These sites will ALWAYS be blocked during study sessions.</p>
+              <textarea id="profile-blacklist" class="input" style="height: 100px; resize: vertical;"></textarea>
+            </div>
+
+            <div class="info-group" style="margin-top: 1.5rem;">
+              <label>Preferred Study Start Time (Daily Reminder)</label>
+              <input type="time" id="profile-start-time" class="input">
+            </div>
+
+            <button id="btn-save-profile-settings" class="btn btn-primary" style="margin-top: 1rem;">Update Profile Settings</button>
           </div>
           
           <div class="danger-zone" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">

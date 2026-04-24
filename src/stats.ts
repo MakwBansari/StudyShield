@@ -5,6 +5,7 @@ export const StatsUI = {
   renderDashboard(sessions: StudySession[]) {
     this.renderTimeline(sessions);
     this.renderRevisionPanel(sessions);
+    this.renderWeeklyPerformance(sessions);
   },
 
   renderStatsTab(sessions: StudySession[]) {
@@ -13,6 +14,7 @@ export const StatsUI = {
     this.renderHeatmap(sessions);
     this.calculateFocusScore(sessions);
     this.renderDistractionLog();
+    this.renderWeakHourInsights(sessions);
   },
 
   renderTimeline(sessions: StudySession[]) {
@@ -299,5 +301,166 @@ export const StatsUI = {
         </div>
       `;
     });
+  },
+
+  renderWeeklyPerformance(sessions: StudySession[]) {
+    const gridEl = document.getElementById('weekly-performance-grid');
+    const summaryEl = document.getElementById('weekly-summary-stats');
+    if (!gridEl) return;
+
+    // Last 7 days
+    const days: { date: string, dayName: string }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      days.push({
+        date: d.toLocaleDateString('en-CA'),
+        dayName: d.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    }
+
+    const sessionStats: Record<string, { hours: number, qs: number }> = {};
+    let totalWeekHours = 0;
+    let totalWeekQs = 0;
+
+    sessions.forEach(s => {
+      // Only count if within the last 7 days
+      if (days.some(d => d.date === s.date)) {
+        if (!sessionStats[s.date]) sessionStats[s.date] = { hours: 0, qs: 0 };
+        const hrs = (s.durationMinutes / 60);
+        sessionStats[s.date].hours += hrs;
+        sessionStats[s.date].qs += (s.questionsSolved || 0);
+        
+        totalWeekHours += hrs;
+        totalWeekQs += (s.questionsSolved || 0);
+      }
+    });
+
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <span style="color: var(--accent);">${totalWeekHours.toFixed(1)}h Studied</span>
+        <span style="color: #10b981;">${totalWeekQs} Qs Solved</span>
+      `;
+    }
+
+    gridEl.innerHTML = days.map(d => {
+      const stats = sessionStats[d.date] || { hours: 0, qs: 0 };
+      const isToday = d.date === now.toLocaleDateString('en-CA');
+      const isHighPerformer = stats.hours >= 6;
+      
+      const pct = Math.min(100, (stats.hours / 8) * 100);
+
+      return `
+        <div class="weekly-card ${isToday ? 'active-day' : ''} ${isHighPerformer ? 'high-performer' : ''}">
+          <div class="day-label">${d.dayName}</div>
+          <div class="date-label">${d.date.split('-').slice(1).join('/')}</div>
+          <div class="hour-val">${stats.hours.toFixed(1)}<span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-left: 2px;">h</span></div>
+          <div class="qs-val">${stats.qs} Questions</div>
+          <div class="mini-progress">
+            <div class="mini-progress-fill" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  renderWeakHourInsights(sessions: StudySession[]) {
+    const insightEl = document.getElementById('weak-hour-insight');
+    if (!insightEl) return;
+
+    if (sessions.length < 5) {
+      insightEl.innerHTML = '<h4>Need more data</h4>Keep studying to unlock personalized focus insights.';
+      return;
+    }
+
+    // Analyze average duration by hour of day (0-23)
+    const hourStats: Record<number, { count: number, totalMinutes: number }> = {};
+    for (let i = 0; i < 24; i++) hourStats[i] = { count: 0, totalMinutes: 0 };
+
+    sessions.forEach(s => {
+      const hour = new Date(s.startTime).getHours();
+      hourStats[hour].count++;
+      hourStats[hour].totalMinutes += s.durationMinutes;
+    });
+
+    let worstHour = -1;
+    let minAvg = Infinity;
+    let bestHour = -1;
+    let maxAvg = 0;
+
+    for (let i = 0; i < 24; i++) {
+      if (hourStats[i].count > 0) {
+        const avg = hourStats[i].totalMinutes / hourStats[i].count;
+        if (avg < minAvg) { worstHour = i; minAvg = avg; }
+        if (avg > maxAvg) { bestHour = i; maxAvg = avg; }
+      }
+    }
+
+    if (worstHour === -1) {
+      insightEl.innerHTML = '<h4>Stable Focus</h4>You seem to have consistent focus across all your sessions!';
+      return;
+    }
+
+    const worstStr = `${worstHour}:00 - ${worstHour + 1}:00`;
+    const bestStr = `${bestHour}:00 - ${bestHour + 1}:00`;
+
+    insightEl.innerHTML = `
+      <h4>Focus Pattern Detected</h4>
+      <p>Your focus is <strong>weakest</strong> between <strong>${worstStr}</strong> (average ${minAvg.toFixed(0)}m session). 
+      Avoid scheduling heavy GATE subjects like OS or Algorithms during this time.</p>
+      <p style="margin-top: 0.5rem;">Your <strong>Peak Performance</strong> is at <strong>${bestStr}</strong>. Use this for your hardest topics!</p>
+    `;
+  },
+
+  renderMockTrendChart(mockTests: any[]) {
+    const chartEl = document.getElementById('mock-trend-chart');
+    if (!chartEl) return;
+
+    if (mockTests.length === 0) {
+      chartEl.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding-top: 100px;">No mock tests logged yet.</p>';
+      return;
+    }
+
+    const sortedTests = [...mockTests].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Simple SVG Line Chart
+    const width = 800;
+    const height = 300;
+    const padding = 40;
+    const maxMarks = 100; // GATE is out of 100
+    
+    const points = sortedTests.map((t, i) => {
+      const x = padding + (i * (width - 2 * padding)) / (Math.max(1, sortedTests.length - 1));
+      const y = height - padding - (t.totalMarks / maxMarks) * (height - 2 * padding);
+      return `${x},${y}`;
+    }).join(' ');
+
+    const polyline = `<polyline fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${points}" />`;
+    
+    // Add points
+    const circles = sortedTests.map((t, i) => {
+      const x = padding + (i * (width - 2 * padding)) / (Math.max(1, sortedTests.length - 1));
+      const y = height - padding - (t.totalMarks / maxMarks) * (height - 2 * padding);
+      return `<circle cx="${x}" cy="${y}" r="6" fill="var(--bg-card)" stroke="var(--accent)" stroke-width="2" />
+              <text x="${x}" y="${y - 15}" text-anchor="middle" fill="var(--text-main)" font-size="12" font-weight="bold">${t.totalMarks}</text>
+              <text x="${x}" y="${height - 10}" text-anchor="middle" fill="var(--text-muted)" font-size="10">${t.name}</text>`;
+    }).join('');
+
+    // Target Line (e.g. 70 marks)
+    const targetY = height - padding - (70 / maxMarks) * (height - 2 * padding);
+    const targetLine = `<line x1="${padding}" y1="${targetY}" x2="${width - padding}" y2="${targetY}" stroke="rgba(16, 185, 129, 0.3)" stroke-width="2" stroke-dasharray="5,5" />
+                        <text x="${width - padding + 5}" y="${targetY + 4}" fill="#10b981" font-size="10">Target: 70+</text>`;
+
+    chartEl.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+        <!-- Grid lines -->
+        <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="var(--border)" stroke-width="1" />
+        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="var(--border)" stroke-width="1" />
+        ${targetLine}
+        ${polyline}
+        ${circles}
+      </svg>
+    `;
   }
 };
