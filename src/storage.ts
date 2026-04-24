@@ -8,6 +8,8 @@ export interface StudySession {
   durationMinutes: number;
   date: string; // YYYY-MM-DD
   questionsSolved?: number;
+  unsolvedQuestions?: number;
+  source?: string;
   unsolvedDoubts?: string;
 }
 
@@ -23,6 +25,15 @@ export interface SubjectGoal {
   frequencyDays: number;
   totalSyllabusHours?: number;
   totalQuestions?: number;
+  cheatsheet?: string;
+}
+
+export interface MockTest {
+  id: string;
+  date: string;
+  name: string;
+  totalMarks: number;
+  subjectBreakdown: Record<string, number>;
 }
 
 export interface Settings {
@@ -32,6 +43,8 @@ export interface Settings {
   whitelist?: string[];
   blacklist?: string[];
   currentTimerSession?: any;
+  targetScore?: number;
+  preferredStartTime?: string;
 }
 
 export const StorageAPI = {
@@ -59,9 +72,23 @@ export const StorageAPI = {
       const email = localStorage.getItem('currentUser');
       const key = email ? `study_settings_${email}` : 'study_settings';
       const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : {};
+      if (data) return JSON.parse(data);
+
+      // Default settings
+      const defaults = {
+        whitelist: ['localhost', 'nptel.ac.in', 'gateoverflow.in', 'geeksforgeeks.org', 'youtube.com', 'drive.google.com', 'ankiweb.net', 'github.com'],
+        blacklist: ['facebook.com', 'instagram.com', 'twitter.com', 'reddit.com', 'netflix.com']
+      };
+
+      // Check if we have userData preferences to use as fallback
+      const users = JSON.parse(localStorage.getItem('users') || '{}');
+      if (email && users[email] && users[email].preferences) {
+        return { ...defaults, ...users[email].preferences };
+      }
+      
+      return defaults;
     } catch {
-      return {};
+      return { whitelist: [], blacklist: [] };
     }
   },
 
@@ -130,5 +157,24 @@ export const StorageAPI = {
       action: 'UPDATE_TOTAL_TIME',
       payload: { minutes }
     }, '*');
+  },
+
+  getMockTests(): MockTest[] {
+    try {
+      const email = localStorage.getItem('currentUser');
+      const key = email ? `mock_tests_${email}` : 'mock_tests';
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveMockTest(test: MockTest) {
+    const email = localStorage.getItem('currentUser');
+    const key = email ? `mock_tests_${email}` : 'mock_tests';
+    const tests = this.getMockTests();
+    tests.push(test);
+    localStorage.setItem(key, JSON.stringify(tests));
   }
 };
