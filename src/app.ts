@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // --- INITIALIZE SETTINGS ---
+  const settings = StorageAPI.getSettings();
+
   // --- AUTH GUARD & LOGOUT ---
   const currentUser = localStorage.getItem('currentUser');
   if (!currentUser) {
@@ -61,6 +64,65 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = 'index.html';
   });
 
+  // --- NOTIFICATION SERVICE ---
+  const NotificationService = {
+    async requestPermission() {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        await Notification.requestPermission();
+      }
+    },
+    send(title: string, body: string) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, icon: './favicon.ico' });
+      }
+    }
+  };
+  NotificationService.requestPermission();
+
+  // --- POPULATE PROFILE SETTINGS ---
+  const profileWhitelist = document.getElementById('profile-whitelist') as HTMLTextAreaElement;
+  const profileBlacklist = document.getElementById('profile-blacklist') as HTMLTextAreaElement;
+  
+  if (userData && userData.preferences) {
+    if (profileWhitelist) profileWhitelist.value = (userData.preferences.whitelist || []).join('\n');
+    if (profileBlacklist) profileBlacklist.value = (userData.preferences.blacklist || []).join('\n');
+    const profileStartTime = document.getElementById('profile-start-time') as HTMLInputElement;
+    if (profileStartTime) profileStartTime.value = settings.preferredStartTime || '10:00';
+  } else {
+    // Fallback to general settings if preferences not on user object
+    const generalSettings = StorageAPI.getSettings();
+    if (profileWhitelist) profileWhitelist.value = (generalSettings.whitelist || []).join('\n');
+    if (profileBlacklist) profileBlacklist.value = (generalSettings.blacklist || []).join('\n');
+    const profileStartTime = document.getElementById('profile-start-time') as HTMLInputElement;
+    if (profileStartTime) profileStartTime.value = generalSettings.preferredStartTime || '10:00';
+  }
+
+  document.getElementById('btn-save-profile-settings')?.addEventListener('click', () => {
+    const whitelist = profileWhitelist.value.split('\n').map(s => s.trim()).filter(s => s !== '');
+    const blacklist = profileBlacklist.value.split('\n').map(s => s.trim()).filter(s => s !== '');
+    const preferredStartTime = (document.getElementById('profile-start-time') as HTMLInputElement).value;
+
+    if (whitelist.length > 20 || blacklist.length > 20) {
+      alert('You can only add up to 20 websites in each list.');
+      return;
+    }
+
+    // Save to general settings
+    StorageAPI.saveSettings({ whitelist, blacklist, preferredStartTime });
+
+    // Also update user object for consistency
+    if (currentUser) {
+      const users = JSON.parse(localStorage.getItem('users') || '{}');
+      if (users[currentUser]) {
+        users[currentUser].preferences = { whitelist, blacklist, preferredStartTime };
+        localStorage.setItem('users', JSON.stringify(users));
+      }
+    }
+
+    alert('Focus settings updated successfully!');
+    location.reload(); // Refresh to update sidebar
+  });
+
   document.getElementById('btn-reset-data')?.addEventListener('click', () => {
     if (confirm('Are you SURE you want to delete all study data? This cannot be undone.')) {
       localStorage.removeItem('study_sessions');
@@ -76,14 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const subjList = document.getElementById('subjects-list');
   const weakSelect = document.getElementById('ai-weak-subjects') as HTMLSelectElement;
 
-  const settings = StorageAPI.getSettings();
   let goals = settings.goals && settings.goals.length > 0 ? settings.goals : GATE_SUBJECTS.map(s => ({
     subject: s.name,
     isActive: true, // Default to all active to show subjects on dashboard
     hoursTarget: 5,
     frequencyDays: 7,
     totalSyllabusHours: 50,
-    totalQuestions: 200
+    totalQuestions: 200,
+    cheatsheet: ''
   }));
 
 
@@ -94,7 +156,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   GATE_SUBJECTS.forEach((subj, index) => {
     // Get Goal
-    const goal = goals.find(g => g.subject === subj.name) || goals[0];
+    const goal = goals.find(g => g.subject === subj.name) || { 
+      subject: subj.name, 
+      isActive: false, 
+      hoursTarget: 3, 
+      frequencyDays: 7,
+      cheatsheet: ''
+    };
 
     // Populate dropdowns
     if (goal.isActive) {
@@ -118,27 +186,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Populate Goals Tab
     const goalDiv = document.createElement('div');
-    goalDiv.style.display = 'flex';
-    goalDiv.style.alignItems = 'center';
-    goalDiv.style.gap = '1rem';
-    goalDiv.style.background = 'var(--bg-color)';
-    goalDiv.style.padding = '1rem';
-    goalDiv.style.borderRadius = '8px';
-    goalDiv.style.border = '1px solid var(--border)';
+    goalDiv.className = 'goal-item';
     
     goalDiv.innerHTML = `
-      <label style="flex: 1; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+      <label class="goal-info">
         <input type="checkbox" id="goal-active-${index}" ${goal.isActive ? 'checked' : ''}>
-        <span style="font-weight: 500;">${subj.name}</span>
+        <span>${subj.name}</span>
       </label>
-      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <input type="number" id="goal-hours-${index}" class="input" value="${goal.hoursTarget}" min="1" max="24" style="width: 60px; margin: 0; padding: 0.25rem;"> hrs
-          / <input type="number" id="goal-freq-${index}" class="input" value="${goal.frequencyDays}" min="1" max="30" style="width: 60px; margin: 0; padding: 0.25rem;"> days
+      <div class="goal-controls">
+        <div class="goal-row">
+          <div class="goal-input-group">
+            <input type="number" id="goal-hours-${index}" class="input" value="${goal.hoursTarget}" min="1" max="24"> 
+            <span>hrs</span>
+          </div>
+          <span>/</span>
+          <div class="goal-input-group">
+            <input type="number" id="goal-freq-${index}" class="input" value="${goal.frequencyDays}" min="1" max="30"> 
+            <span>days</span>
+          </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
-          Tot. Hrs: <input type="number" id="goal-total-hrs-${index}" class="input" value="${goal.totalSyllabusHours || ''}" min="1" placeholder="-" style="width: 60px; margin: 0; padding: 0.25rem;">
-          Tot. Qs: <input type="number" id="goal-total-qs-${index}" class="input" value="${goal.totalQuestions || ''}" min="1" placeholder="-" style="width: 60px; margin: 0; padding: 0.25rem;">
+        <div class="goal-row">
+          <div class="goal-input-group">
+            <span>Tot. Hrs:</span>
+            <input type="number" id="goal-total-hrs-${index}" class="input" value="${goal.totalSyllabusHours || ''}" min="1" placeholder="-">
+          </div>
+          <div class="goal-input-group">
+            <span>Tot. Qs:</span>
+            <input type="number" id="goal-total-qs-${index}" class="input" value="${goal.totalQuestions || ''}" min="1" placeholder="-">
+          </div>
+        </div>
+        <div class="goal-row" style="margin-top: 0.5rem;">
+          <textarea id="goal-cheat-${index}" class="input" style="height: 60px; font-size: 0.8rem; flex: 1; resize: vertical;" placeholder="Pinned Formulas / Key Concepts (e.g. Master Theorem: T(n) = aT(n/b) + f(n))">${goal.cheatsheet || ''}</textarea>
         </div>
       </div>
     `;
@@ -173,16 +251,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="subj-name">${subj.name} ${totalQs >= (goal.totalQuestions || Infinity) ? '✅' : ''}</span>
-          <span class="subj-weight">${subj.weightage}m</span>
+        <div class="subject-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <span class="subj-name" style="font-size: 1.2rem; font-weight: 700;">${subj.name} ${totalQs >= (goal.totalQuestions || Infinity) ? '✅' : ''}</span>
+          <span class="subj-weight" style="background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${subj.weightage} Marks</span>
         </div>
-        <div class="subj-progress">
-          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
-            <span>${totalHours.toFixed(1)}h / ${goal.hoursTarget}h (${goal.frequencyDays}d)</span>
-            <span>Qs: ${totalQs} / ${goal.totalQuestions || '-'}</span>
+        
+        <div class="subj-stats" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="stat-group">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+              <span style="color: var(--text-muted);">Weekly Hours</span>
+              <span style="font-weight: 600;">${totalHours.toFixed(1)} / ${goal.hoursTarget}h</span>
+            </div>
+            <div class="progress-bar" style="height: 8px; background: var(--bg-color); border-radius: 4px; overflow: hidden;">
+              <div class="progress-fill" style="width: ${pct}%; height: 100%; background: var(--accent); border-radius: 4px;"></div>
+            </div>
           </div>
-          <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+
+          <div class="stat-group">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+              <span style="color: var(--text-muted);">Syllabus Questions</span>
+              <span style="font-weight: 600;">${totalQs} / ${goal.totalQuestions || '-'} Qs</span>
+            </div>
+            <div class="progress-bar" style="height: 8px; background: var(--bg-color); border-radius: 4px; overflow: hidden;">
+              <div class="progress-fill" style="width: ${goal.totalQuestions ? Math.min(100, (totalQs / goal.totalQuestions) * 100) : 0}%; height: 100%; background: #10b981; border-radius: 4px;"></div>
+            </div>
+          </div>
         </div>
       `;
       subjList?.appendChild(div);
@@ -197,12 +290,26 @@ document.addEventListener('DOMContentLoaded', () => {
       hoursTarget: parseFloat((document.getElementById(`goal-hours-${index}`) as HTMLInputElement).value) || 3,
       frequencyDays: parseInt((document.getElementById(`goal-freq-${index}`) as HTMLInputElement).value, 10) || 1,
       totalSyllabusHours: parseFloat((document.getElementById(`goal-total-hrs-${index}`) as HTMLInputElement).value) || undefined,
-      totalQuestions: parseInt((document.getElementById(`goal-total-qs-${index}`) as HTMLInputElement).value, 10) || undefined
+      totalQuestions: parseInt((document.getElementById(`goal-total-qs-${index}`) as HTMLInputElement).value, 10) || undefined,
+      cheatsheet: (document.getElementById(`goal-cheat-${index}`) as HTMLTextAreaElement).value
     }));
     StorageAPI.saveSettings({ goals: newGoals });
     alert('Goals saved successfully!');
     location.reload(); // Reload to refresh dashboard targets
   });
+
+  // --- UPDATE SIDEBAR WHITELIST ---
+  const sidebarWhitelistUl = document.querySelector('.whitelist-panel ul');
+  if (sidebarWhitelistUl) {
+    // Get fresh settings to ensure we have the latest after any saves
+    const latestSettings = StorageAPI.getSettings();
+    const currentWhitelist = latestSettings.whitelist || [];
+    if (currentWhitelist.length > 0) {
+      sidebarWhitelistUl.innerHTML = currentWhitelist.map((site: string) => `<li>${site}</li>`).join('');
+    } else {
+      sidebarWhitelistUl.innerHTML = '<li>None set</li>';
+    }
+  }
   if (settings.examDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -264,6 +371,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render initial dashboard
   const sessions = StorageAPI.getSessions();
   StatsUI.renderDashboard(sessions);
+
+  // --- MOTIVATION QUOTES ---
+  const quotes = [
+    "No cap, your consistency is looking fine today. Keep going.",
+    "Manifesting that AIR < 100 for you. Stay on the grind.",
+    "Go off, study king. Secure the bag (and the rank).",
+    "Main character energy activated. Time to lock in.",
+    "The grind don't stop, literally. You've got this.",
+    "Stop scrolling TikTok, start scrolling your notes.",
+    "Delulu is the only solulu until you actually study.",
+    "Sending you positive vibes and high marks only.",
+    "Imagine the flex when you get that IIT call. Study now.",
+    "You're doing amazing, sweetie. Don't quit now."
+  ];
+
+  const quoteEl = document.getElementById('motivation-quote');
+  const authorEl = document.getElementById('motivation-author');
+  if (quoteEl) {
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    quoteEl.textContent = `"${randomQuote}"`;
+    if (authorEl) authorEl.style.display = 'none'; // GenZ quotes don't need authors
+  }
 
   // Render Revisions
   const dueRevisions = getDueRevisions(sessions);
@@ -359,6 +488,81 @@ document.addEventListener('DOMContentLoaded', () => {
     a.click();
     URL.revokeObjectURL(url);
   });
+
+  // --- MOCK TEST LOGGING ---
+  const mockSubjectContainer = document.getElementById('mock-subject-scores');
+  if (mockSubjectContainer) {
+    mockSubjectContainer.innerHTML = GATE_SUBJECTS.map((s, i) => `
+      <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 8px;">
+        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">${s.name}</label>
+        <input type="number" id="mock-subj-${i}" class="input" placeholder="Marks" step="0.5" style="padding: 0.4rem; width: 100%;">
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('form-mock-test')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('mock-name') as HTMLInputElement).value;
+    const date = (document.getElementById('mock-date') as HTMLInputElement).value;
+    
+    const breakdown: Record<string, number> = {};
+    let total = 0;
+    GATE_SUBJECTS.forEach((s, i) => {
+      const val = parseFloat((document.getElementById(`mock-subj-${i}`) as HTMLInputElement).value) || 0;
+      breakdown[s.name] = val;
+      total += val;
+    });
+
+    StorageAPI.saveMockTest({
+      id: Date.now().toString(),
+      name,
+      date,
+      totalMarks: total,
+      subjectBreakdown: breakdown
+    });
+
+    alert(`Test saved successfully! Total Marks: ${total.toFixed(2)}`);
+    location.reload();
+  });
+  
+  // Render Mock trend
+  StatsUI.renderMockTrendChart(StorageAPI.getMockTests());
+
+  // --- SMART NOTIFICATIONS CHECKS ---
+  setInterval(() => {
+    const now = new Date();
+    const sessions = StorageAPI.getSessions();
+    
+    // Get true local YYYY-MM-DD
+    const today = now.toLocaleDateString('en-CA'); 
+    
+    const todaySessions = sessions.filter(s => s.date === today);
+    const totalMinutes = todaySessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+
+    // Goal: 4 hours (240 mins)
+    // Notify at 3.5 hours (210 mins)
+    if (totalMinutes >= 210 && totalMinutes < 215) {
+      const alreadyNotified = localStorage.getItem(`notify_goal_${today}`);
+      if (!alreadyNotified) {
+        NotificationService.send("Elite Progress!", "You are just 30 minutes away from your 4-hour daily goal! Keep going.");
+        localStorage.setItem(`notify_goal_${today}`, 'true');
+      }
+    }
+
+    // Study Start reminder
+    const prefTime = settings.preferredStartTime || '10:00';
+    const [prefHour, prefMin] = prefTime.split(':').map(Number);
+    const prefDate = new Date(now);
+    prefDate.setHours(prefHour, prefMin, 0, 0);
+
+    if (now >= prefDate && todaySessions.length === 0) {
+      const alreadyNotified = localStorage.getItem(`notify_start_${today}`);
+      if (!alreadyNotified) {
+        NotificationService.send("Start Studying!", `It's past your preferred start time (${prefTime}). Let's get to work!`);
+        localStorage.setItem(`notify_start_${today}`, 'true');
+      }
+    }
+  }, 60000); // Check every minute
 
   // --- AI PLANNER ---
   document.getElementById('btn-generate-plan')?.addEventListener('click', async () => {
