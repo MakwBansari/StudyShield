@@ -21,6 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
     topicDisplay.style.display = 'none';
   }
 
+  // --- LOAD CHEATSHEET ---
+  const settings = StorageAPI.getSettings();
+  const goal = settings.goals?.find(g => g.subject === subject);
+  const cheatEl = document.getElementById('cheatsheet-content');
+  if (cheatEl && goal?.cheatsheet && goal.cheatsheet.trim() !== '') {
+    cheatEl.textContent = goal.cheatsheet;
+  }
+
   const displayElId = 'timer-display';
   const glowEl = document.getElementById('timer-glow') as HTMLElement;
   const timer = new Timer(displayElId, displayElId);
@@ -61,10 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (phase === 'study' && durationSecs > 60) {
       const durationMins = Math.round(durationSecs / 60);
       
-      const qs = prompt('How many questions did you solve this session?', '0');
-      const doubts = prompt('Any unsolved doubts or notes?', '');
+      const qsSolved = prompt('Number of questions SOLVED correctly?', '0');
+      const qsUnsolved = prompt('Number of questions UNSOLVED/INCORRECT?', '0');
+      const source = prompt('Source of questions (e.g. PYQ, Test Series, Book)?', 'General Study');
+      const doubts = prompt('Any specific doubts or concepts to revisit?', '');
 
-      const session = {
+      const session: StudySession = {
         id: Date.now().toString(),
         subject,
         activity,
@@ -72,8 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
         startTime: activeStartTime,
         endTime: Date.now(),
         durationMinutes: durationMins,
-        date: new Date().toISOString().split('T')[0],
-        questionsSolved: parseInt(qs || '0', 10),
+        date: new Date().toLocaleDateString('en-CA'),
+        questionsSolved: parseInt(qsSolved || '0', 10),
+        unsolvedQuestions: parseInt(qsUnsolved || '0', 10),
+        source: source || 'General Study',
         unsolvedDoubts: doubts || undefined
       };
       StorageAPI.saveSession(session);
