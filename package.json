@@ -1,16 +1,28 @@
 {
-  "name": "gate-study-tracker",
-  "version": "1.0.0",
-  "description": "GATE exam study tracker web app + Chrome/Brave extension",
-  "main": "index.js",
+  "name": "next-app",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "node build.js --dev",
-    "build": "node build.js",
-    "build:ext": "node build.js --ext-only"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "build:ext": "node build-extension.js"
   },
   "dependencies": {
-    "esbuild": "^0.20.1",
-    "serve": "^14.2.1",
-    "typescript": "^5.3.3"
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.40",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "esbuild": "^0.28.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "typescript": "^5"
   }
 }

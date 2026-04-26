@@ -1,0 +1,16 @@
+{
+  "name": "gate-study-tracker",
+  "version": "1.0.0",
+  "description": "GATE exam study tracker web app + Chrome/Brave extension",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node build.js --dev",
+    "build": "node build.js",
+    "build:ext": "node build.js --ext-only"
+  },
+  "dependencies": {
+    "esbuild": "^0.20.1",
+    "serve": "^14.2.1",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Shield - GATE Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="ext-warning" class="banner hidden">
+    ⚠️ Install the GATE Focus Extension to enable tab blocking
+  </div>
+
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="logo">StudyShield<span>.</span></div>
+      
+      <div class="countdown-widget">
+        <div class="countdown-value" id="countdown-days">--</div>
+        <div class="countdown-label">Days to GATE</div>
+        <div class="countdown-pace" id="countdown-pace">Pace: --% covered</div>
+        <button id="set-exam-date-btn" class="btn btn-small">Set Exam Date</button>
+      </div>
+
+      <nav class="main-nav">
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="stats">Statistics</button>
+        <button class="nav-btn" data-tab="mock">Mock Tests</button>
+        <button class="nav-btn" data-tab="goals">Study Goals</button>
+        <button class="nav-btn" data-tab="ai">AI Planner</button>
+        <button class="nav-btn" data-tab="profile">Profile</button>
+      </nav>
+
+      <div class="whitelist-panel">
+        <h3>Whitelist</h3>
+        <ul>
+          <li>localhost</li>
+          <li>nptel.ac.in</li>
+          <li>gateoverflow.in</li>
+          <li>geeksforgeeks.org</li>
+          <li>youtube.com</li>
+          <li>drive.google.com</li>
+          <li>ankiweb.net</li>
+          <li>github.com</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-nav">
+        <h2 id="page-title">Dashboard</h2>
+        <div class="user-controls">
+          <span id="user-name-display">User</span>
+          <button id="btn-logout" class="btn btn-secondary btn-small">Log Out</button>
+        </div>
+      </header>
+
+      <!-- DASHBOARD TAB -->
+      <section id="tab-dashboard" class="tab-content active">
+        <div id="motivation-box" style="margin-bottom: 2.5rem; padding: 0 0.5rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">Daily Inspiration</div>
+          <h2 id="motivation-quote" class="animate-reveal" style="font-size: 2.2rem; font-weight: 700; color: var(--text-main); margin: 0; line-height: 1.2; letter-spacing: -0.5px;"></h2>
+        </div>
+
+        <div class="card full-width" style="margin-bottom: 2rem; padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 0.9rem; color: var(--text-muted); border: none; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Weekly Performance</h3>
+            <div id="weekly-summary-stats" style="display: flex; gap: 1.5rem; font-size: 0.9rem; font-weight: 600;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <div id="weekly-performance-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;"></div>
+        </div>
+        
+        <div class="dashboard-grid">
+          
+          <!-- Timer Column -->
+          <div class="timer-section">
+            <div class="card timer-card">
+              <div class="timer-glow"></div>
+              <div class="timer-display" id="timer-display">00:00:00</div>
+              
+              <div class="timer-controls">
+                <select id="timer-subject" class="input">
+                  <!-- Options populated by JS -->
+                </select>
+                <select id="timer-activity" class="input">
+                  <option value="Theory">Theory</option>
+                  <option value="Notes">Notes</option>
+                  <option value="PYQs">PYQs</option>
+                  <option value="Revision">Revision</option>
+                  <option value="Problem Solving">Problem Solving</option>
+                  <option value="Mock Test">Mock Test</option>
+                </select>
+                <input type="text" id="timer-topic" class="input" placeholder="Topic note (compulsory for spaced repetition)">
+                
+                <div class="pomodoro-toggle">
+                  <label>
+                    <input type="checkbox" id="pomodoro-mode">
+                    Pomodoro Mode (25m / 5m)
+                  </label>
+                </div>
+
+                <div class="btn-group">
+                  <button id="btn-start" class="btn btn-primary">START</button>
+                  <button id="btn-pause" class="btn btn-secondary hidden">PAUSE</button>
+                  <button id="btn-stop" class="btn btn-danger hidden">STOP</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Subject Manager -->
+            <div class="card subjects-card">
+              <h3>Active Subjects & Targets</h3>
+              <div id="subjects-list" class="subjects-list">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Logs & Repetition Column -->
+          <div class="logs-section">
+            <div class="card revision-card">
+              <h3>Due for Revision</h3>
+              <div id="revision-list" class="revision-list">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+
+            <div class="card session-log-card">
+              <div class="card-header">
+                <h3>Today's Sessions</h3>
+                <button id="btn-export-csv" class="btn btn-small">Export CSV</button>
+              </div>
+              <div id="session-timeline" class="session-timeline">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- STATS TAB -->
+      <section id="tab-stats" class="tab-content">
+        <div class="stats-grid">
+          <div class="card score-card">
+            <h3>Daily Focus Score</h3>
+            <div class="score-display" id="focus-score">A+</div>
+            <div class="score-details" id="focus-score-details"></div>
+          </div>
+          
+          <div class="card streak-card">
+            <h3>Study Streak</h3>
+            <div class="streak-display"><span id="streak-count">0</span> Days</div>
+          </div>
+
+          <div class="card chart-card full-width">
+            <h3>Weekly Hours per Subject</h3>
+            <div id="weekly-chart" class="horizontal-chart"></div>
+          </div>
+
+          <div class="card heatmap-card">
+            <h3>Marks vs Study Hours Heatmap</h3>
+            <div class="heatmap-table-container">
+              <table id="heatmap-table" class="data-table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Marks Weightage</th>
+                    <th>Hours Studied</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card distraction-card full-width">
+            <h3>Distraction Log</h3>
+            <p id="distraction-summary">You tried to escape 0 times.</p>
+          </div>
+
+          <div class="card full-width" id="focus-insights-card">
+            <h3>Focus Insights</h3>
+            <div id="weak-hour-insight" class="insight-box">
+              Analyzing your focus patterns...
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MOCK TESTS TAB -->
+      <section id="tab-mock" class="tab-content">
+        <div class="stats-grid">
+          <div class="card full-width">
+            <h3>Log New Mock Test</h3>
+            <form id="form-mock-test" class="ai-form">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                  <label>Test Name</label>
+                  <input type="text" id="mock-name" class="input" placeholder="e.g. MadeEasy Test 1" required>
+                </div>
+                <div>
+                  <label>Date</label>
+                  <input type="date" id="mock-date" class="input" required>
+                </div>
+              </div>
+              
+              <div id="mock-subject-scores" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <!-- Dynamically populated by JS -->
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem;">Save Test Score</button>
+            </form>
+          </div>
+
+          <div class="card full-width">
+            <h3>Performance Trend</h3>
+            <div id="mock-trend-chart" style="height: 300px; width: 100%; position: relative;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GOALS TAB -->
+      <section id="tab-goals" class="tab-content">
+        <div class="card goals-card">
+          <h2>Set Custom Subject Goals</h2>
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">Define which subjects you are actively studying, target hours per session, and how frequently.</p>
+          <div id="goals-list" class="goals-list" style="display: flex; flex-direction: column; gap: 1rem;">
+            <!-- Rendered by JS -->
+          </div>
+          <button id="btn-save-goals" class="btn btn-primary" style="margin-top: 1.5rem;">Save Goals</button>
+        </div>
+      </section>
+
+      <!-- AI PLANNER TAB -->
+      <section id="tab-ai" class="tab-content">
+        <div class="card ai-card">
+          <h2>AI Study Plan Generator</h2>
+          <p>Generate a structured day-by-day study plan based on your weak subjects and available time.</p>
+          
+          <div class="ai-form">
+            <label>Anthropic API Key (stored locally)</label>
+            <input type="password" id="ai-api-key" class="input" placeholder="sk-ant-...">
+            
+            <label>Weak Subjects (Ctrl+Click to select multiple)</label>
+            <select id="ai-weak-subjects" class="input" multiple size="4">
+              <!-- JS -->
+            </select>
+            
+            <label>Exam Date</label>
+            <input type="date" id="ai-exam-date" class="input">
+            
+            <label>Daily Study Hours Available</label>
+            <input type="number" id="ai-daily-hours" class="input" value="4" min="1" max="16">
+
+            <button id="btn-generate-plan" class="btn btn-primary">Generate Plan</button>
+          </div>
+
+          <div id="ai-plan-output" class="ai-plan-output hidden">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE TAB -->
+      <section id="tab-profile" class="tab-content">
+        <div class="card profile-card">
+          <h2>Your Profile</h2>
+          <div class="profile-info">
+            <div class="info-group">
+              <label>Name</label>
+              <div id="profile-name">--</div>
+            </div>
+            <div class="info-group">
+              <label>Email</label>
+              <div id="profile-email">--</div>
+            </div>
+          </div>
+
+          <div class="focus-settings" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);">
+            <h3 style="margin-bottom: 1.5rem;">Focus Settings</h3>
+            
+            <div class="info-group">
+              <label>Whitelist (One per line)</label>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">These sites will ALWAYS be accessible.</p>
+              <textarea id="profile-whitelist" class="input" style="height: 100px; resize: vertical;"></textarea>
+            </div>
+
+            <div class="info-group" style="margin-top: 1.5rem;">
+              <label>Blacklist (One per line)</label>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">These sites will ALWAYS be blocked during study sessions.</p>
+              <textarea id="profile-blacklist" class="input" style="height: 100px; resize: vertical;"></textarea>
+            </div>
+
+            <div class="info-group" style="margin-top: 1.5rem;">
+              <label>Preferred Study Start Time (Daily Reminder)</label>
+              <input type="time" id="profile-start-time" class="input">
+            </div>
+
+            <button id="btn-save-profile-settings" class="btn btn-primary" style="margin-top: 1rem;">Update Profile Settings</button>
+          </div>
+          
+          <div class="danger-zone" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+            <h3 style="color: var(--danger); border: none; margin-bottom: 0.5rem;">Danger Zone</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Resetting your data will permanently delete all study sessions and settings.</p>
+            <button id="btn-reset-data" class="btn btn-danger">Reset All Study Data</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>
