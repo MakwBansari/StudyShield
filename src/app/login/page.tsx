@@ -12,7 +12,19 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Mock login logic
-    localStorage.setItem("user", JSON.stringify({ email }));
+    const existingUser = localStorage.getItem("user");
+    let name = "";
+    if (existingUser) {
+      try {
+        const parsed = JSON.parse(existingUser);
+        if (parsed.email === email) {
+          name = parsed.name || "";
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+    localStorage.setItem("user", JSON.stringify({ email, name }));
     router.push("/dashboard");
   };
 

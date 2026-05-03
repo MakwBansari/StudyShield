@@ -20,6 +20,36 @@ export default function TimerPage() {
   const [cheatsheet, setCheatsheet] = useState("");
 
   const [activeStartTime, setActiveStartTime] = useState(0);
+  const [lastStart, setLastStart] = useState<number | null>(null);
+  const [accumulated, setAccumulated] = useState(0);
+
+  const POMODORO_STUDY = 45 * 60;
+  const POMODORO_BREAK = 10 * 60;
+
+  const playBell = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(261.63, ctx.currentTime + 1.5);
+      
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 2);
+    } catch (e) {
+      console.error("Audio API error:", e);
+    }
+  };
 
   useEffect(() => {
     const sub = searchParams.get("subject") || "General Aptitude";
@@ -41,14 +71,29 @@ export default function TimerPage() {
     }
 
     setIsActive(true);
+    setLastStart(Date.now());
     StorageAPI.setExtensionStudying(true, sub, Date.now());
   }, [searchParams]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    if (isActive) {
+    if (isActive && lastStart !== null) {
       interval = setInterval(() => {
-        setSeconds((prev) => prev + 1);
+        const elapsed = Math.floor((Date.now() - lastStart) / 1000) + accumulated;
+        
+        if (isPomodoro) {
+          const limit = phase === "study" ? POMODORO_STUDY : POMODORO_BREAK;
+          if (elapsed >= limit) {
+            playBell();
+            setPhase(p => p === "study" ? "break" : "study");
+            setLastStart(Date.now());
+            setAccumulated(0);
+            setSeconds(0);
+            return;
+          }
+        }
+        
+        setSeconds(elapsed);
       }, 1000);
     } else {
       if (interval) clearInterval(interval);
@@ -56,15 +101,24 @@ export default function TimerPage() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive]);
+  }, [isActive, lastStart, accumulated]);
 
   const formatTime = () => {
-    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handlePauseResume = () => {
+    if (isActive) {
+      if (lastStart !== null) {
+        setAccumulated(prev => prev + Math.floor((Date.now() - lastStart) / 1000));
+      }
+      setLastStart(null);
+    } else {
+      setLastStart(Date.now());
+    }
     const newActive = !isActive;
     setIsActive(newActive);
     StorageAPI.setExtensionStudying(newActive, subject, Date.now());
@@ -85,7 +139,7 @@ export default function TimerPage() {
         
         <div className="timer-meta">
           <span className="timer-subject">{subject}</span>
-          <span className="timer-activity">{activity}</span>
+          <span className="timer-activity" style={phase === "break" ? { background: "var(--danger)", color: "#fff" } : {}}>{phase === "break" ? "BREAK TIME" : activity}</span>
           {topic && <p className="timer-topic">Topic: {topic}</p>}
         </div>
 

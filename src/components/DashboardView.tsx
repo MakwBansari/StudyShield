@@ -9,9 +9,10 @@ import { GATE_SUBJECTS, getDueRevisions } from "@/lib/subjects";
 interface DashboardViewProps {
   sessions: StudySession[];
   settings: Settings;
+  userName?: string;
 }
 
-export default function DashboardView({ sessions, settings }: DashboardViewProps) {
+export default function DashboardView({ sessions, settings, userName }: DashboardViewProps) {
   const dueRevisions = getDueRevisions(sessions);
 
   const getWeeklyPerformance = () => {
@@ -66,7 +67,7 @@ export default function DashboardView({ sessions, settings }: DashboardViewProps
 
   return (
     <section className="tab-dashboard">
-      <MotivationQuote />
+      <MotivationQuote userName={userName} />
 
       <div className="card full-width" style={{ marginBottom: "2rem", padding: "1.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>

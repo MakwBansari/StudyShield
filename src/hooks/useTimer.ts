@@ -8,9 +8,11 @@ export function useTimer() {
   const [isPomodoro, setIsPomodoro] = useState(false);
   const [phase, setPhase] = useState<"study" | "break">("study");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [accumulatedTime, setAccumulatedTime] = useState(0);
 
-  const POMODORO_STUDY = 25 * 60;
-  const POMODORO_BREAK = 5 * 60;
+  const POMODORO_STUDY = 45 * 60;
+  const POMODORO_BREAK = 10 * 60;
 
   const playBell = () => {
     try {
@@ -38,20 +40,24 @@ export function useTimer() {
   };
 
   useEffect(() => {
-    if (isActive) {
+    if (isActive && startTime !== null) {
       intervalRef.current = setInterval(() => {
-        setSeconds((s) => {
-          const nextS = s + 1;
-          if (isPomodoro) {
-            const limit = phase === "study" ? POMODORO_STUDY : POMODORO_BREAK;
-            if (nextS >= limit) {
-              playBell();
-              setPhase(phase === "study" ? "break" : "study");
-              return 0;
-            }
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime) / 1000) + accumulatedTime;
+        
+        if (isPomodoro) {
+          const limit = phase === "study" ? POMODORO_STUDY : POMODORO_BREAK;
+          if (elapsed >= limit) {
+            playBell();
+            setPhase(p => p === "study" ? "break" : "study");
+            setStartTime(Date.now());
+            setAccumulatedTime(0);
+            setSeconds(0);
+            return;
           }
-          return nextS;
-        });
+        }
+        
+        setSeconds(elapsed);
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -59,12 +65,23 @@ export function useTimer() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive, isPomodoro, phase]);
+  }, [isActive, isPomodoro, phase, startTime, accumulatedTime]);
 
-  const start = () => setIsActive(true);
-  const pause = () => setIsActive(false);
+  const start = () => {
+    setStartTime(Date.now());
+    setIsActive(true);
+  };
+  const pause = () => {
+    if (startTime !== null) {
+      setAccumulatedTime(prev => prev + Math.floor((Date.now() - startTime) / 1000));
+    }
+    setStartTime(null);
+    setIsActive(false);
+  };
   const reset = () => {
     setIsActive(false);
+    setStartTime(null);
+    setAccumulatedTime(0);
     setSeconds(0);
     setPhase("study");
   };

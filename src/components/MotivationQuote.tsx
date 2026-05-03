@@ -2,26 +2,30 @@
 
 import React, { useState, useEffect } from "react";
 
-const quotes = [
-  "No cap, your consistency is looking fine today. Keep going.",
-  "Manifesting that AIR < 100 for you. Stay on the grind.",
-  "Go off, study king. Secure the bag (and the rank).",
-  "Main character energy activated. Time to lock in.",
-  "The grind don't stop, literally. You've got this.",
-  "Stop scrolling TikTok, start scrolling your notes.",
-  "Delulu is the only solulu until you actually study.",
-  "Sending you positive vibes and high marks only.",
-  "Imagine the flex when you get that IIT call. Study now.",
-  "You're doing amazing, sweetie. Don't quit now."
-];
+interface MotivationQuoteProps {
+  userName?: string;
+}
 
-export default function MotivationQuote() {
+export default function MotivationQuote({ userName }: MotivationQuoteProps) {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
+    const name = (userName && userName !== "N/A") ? userName : "bestie"; // GenZ fallback
+    const quotes = [
+      `No cap ${name}, your consistency is looking fine today. Keep going.`,
+      `Manifesting that AIR < 100 for you, ${name}. Stay on the grind.`,
+      `Go off, ${name}. Secure the bag (and the rank).`,
+      `Main character energy activated for ${name}. Time to lock in.`,
+      `The grind don't stop, ${name}. You've got this.`,
+      `Stop scrolling TikTok, ${name}. Start scrolling your notes.`,
+      `Delulu is the only solulu for ${name} until you actually study.`,
+      `Sending you positive vibes and high marks only, ${name}.`,
+      `Imagine the flex when you get that IIT call, ${name}. Study now.`,
+      `You're doing amazing, ${name}. Don't quit now.`
+    ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     setQuote(randomQuote);
-  }, []);
+  }, [userName]);
 
   return (
     <div style={{ marginBottom: "2.5rem", padding: "0 0.5rem" }}>

@@ -106,7 +106,7 @@ export default function Timer({ settings }: TimerProps) {
                 checked={isPomodoro} 
                 onChange={(e) => setIsPomodoro(e.target.checked)} 
               />
-              Pomodoro Mode (25m / 5m)
+              Pomodoro Mode (45m / 10m)
             </label>
           </div>
 

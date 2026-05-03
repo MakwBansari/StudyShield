@@ -13,6 +13,7 @@ interface ProfileViewProps {
 export default function ProfileView({ user, settings, onUpdate }: ProfileViewProps) {
   const [whitelist, setWhitelist] = useState((settings.whitelist || []).join("\n"));
   const [blacklist, setBlacklist] = useState((settings.blacklist || []).join("\n"));
+  const [name, setName] = useState((user.name && user.name !== "N/A") ? user.name : "");
 
   const [exportRange, setExportRange] = useState("weekly");
   const [exportSubject, setExportSubject] = useState("All");
@@ -22,6 +23,11 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
       whitelist: whitelist.split("\n").map(s => s.trim()).filter(s => s !== ""),
       blacklist: blacklist.split("\n").map(s => s.trim()).filter(s => s !== ""),
     });
+    
+    // Save user name
+    const updatedUser = { ...user, name };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    
     alert("Profile settings updated!");
     onUpdate();
   };
@@ -104,7 +110,23 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
       <div className="profile-info">
         <div className="info-group">
           <label>Name</label>
-          <div className="info-val">{user.name || "N/A"}</div>
+          <input 
+            type="text"
+            className="input" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+            placeholder="Enter your name"
+            style={{ 
+              width: "100%", 
+              marginTop: "0.5rem",
+              background: "var(--bg-card-hover)",
+              border: "1px solid var(--border)",
+              color: "var(--text-main)",
+              padding: "0.8rem 1rem",
+              borderRadius: "8px",
+              fontSize: "1rem"
+            }}
+          />
         </div>
         <div className="info-group">
           <label>Email</label>

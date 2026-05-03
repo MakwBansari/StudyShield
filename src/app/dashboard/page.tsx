@@ -60,13 +60,13 @@ export default function DashboardPage() {
             {activeTab === "profile" && "Profile"}
           </h2>
           <div className="user-controls">
-            <span id="user-name-display">{user.name || user.email || "User"}</span>
+            <span id="user-name-display">{(user.name && user.name !== "N/A") ? user.name : (user.email || "User")}</span>
             <button onClick={handleLogout} className="btn btn-secondary btn-small">Log Out</button>
           </div>
         </header>
 
         <div className="tab-content">
-          {activeTab === "dashboard" && <DashboardView sessions={sessions} settings={settings} />}
+          {activeTab === "dashboard" && <DashboardView sessions={sessions} settings={settings} userName={user.name} />}
           {activeTab === "stats" && <StatsView sessions={sessions} settings={settings} />}
           {activeTab === "mock" && (
             <MockView 
@@ -92,6 +92,8 @@ export default function DashboardPage() {
               settings={settings} 
               onUpdate={() => {
                 setSettings(StorageAPI.getSettings());
+                const storedUser = localStorage.getItem("user");
+                if (storedUser) setUser(JSON.parse(storedUser));
               }} 
             />
           )}

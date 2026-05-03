@@ -9,9 +9,22 @@ async function updateBlockingRules(isStudying: boolean) {
     return;
   }
 
+  const sanitizeDomain = (url: string) => {
+    try {
+      let str = url.trim();
+      if (!str.startsWith("http://") && !str.startsWith("https://")) {
+        str = "https://" + str;
+      }
+      const u = new URL(str);
+      return u.hostname;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const data = await chrome.storage.local.get(["whitelist", "blacklist"]);
-  const userWhitelist = data.whitelist || [];
-  const userBlacklist = data.blacklist || [];
+  const userWhitelist = (data.whitelist || []).map(sanitizeDomain).filter(Boolean);
+  const userBlacklist = (data.blacklist || []).map(sanitizeDomain).filter(Boolean);
 
   const internalWhitelist = ["localhost", "127.0.0.1", chrome.runtime.id];
   const combinedWhitelist = [...new Set([...internalWhitelist, ...userWhitelist])];
@@ -21,7 +34,7 @@ async function updateBlockingRules(isStudying: boolean) {
   if (userBlacklist.length > 0) {
     rules.push({
       id: 1,
-      priority: 2,
+      priority: 1,
       action: {
         type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
         redirect: { extensionPath: "/blocked.html" }
@@ -33,18 +46,19 @@ async function updateBlockingRules(isStudying: boolean) {
     });
   }
 
-  rules.push({
-    id: 2,
-    priority: 1,
-    action: {
-      type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
-      redirect: { extensionPath: "/blocked.html" }
-    },
-    condition: {
-      resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
-      excludedRequestDomains: combinedWhitelist
-    }
-  });
+  if (combinedWhitelist.length > 0) {
+    rules.push({
+      id: 2,
+      priority: 2,
+      action: {
+        type: chrome.declarativeNetRequest.RuleActionType.ALLOW
+      },
+      condition: {
+        resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
+        requestDomains: combinedWhitelist
+      }
+    });
+  }
 
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: existingRuleIds,
