@@ -31,6 +31,7 @@ function TimerCompletePageContent() {
   const [source, setSource] = useState("General Study");
   const [unsolvedDoubts, setUnsolvedDoubts] = useState("");
   const [notes, setNotes] = useState("");
+  const [isRevision, setIsRevision] = useState(false);
 
   useEffect(() => {
     setSubject(searchParams.get("subject") || "General Aptitude");
@@ -58,6 +59,22 @@ function TimerCompletePageContent() {
     };
 
     StorageAPI.saveSession(session);
+
+    if (isRevision) {
+      const currentSettings = StorageAPI.getSettings();
+      const updatedGoals = (currentSettings.goals || []).map(g => {
+        if (g.subject === subject) {
+          const history = g.revisionHistory || [];
+          return {
+            ...g,
+            revisionHistory: [...history, Date.now()]
+          };
+        }
+        return g;
+      });
+      StorageAPI.saveSettings({ goals: updatedGoals });
+    }
+
     alert("Study session logged successfully!");
     router.push("/dashboard");
   };
@@ -70,59 +87,117 @@ function TimerCompletePageContent() {
           You studied <strong>{subject}</strong> ({activity}) for <strong>{duration} mins</strong>. Let's log your performance.
         </p>
 
-        <div className="form-group">
-          <label>Questions SOLVED correctly</label>
-          <input 
-            type="number" 
-            className="input" 
-            min="0"
-            value={questionsSolved} 
-            onChange={(e) => setQuestionsSolved(parseInt(e.target.value) || 0)} 
-          />
-        </div>
+        {activity === "Theory" || activity === "Notes" ? (
+          <>
+            {/* Revision Toggle */}
+            <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}>
+              <input 
+                type="checkbox" 
+                id="is-revision"
+                checked={isRevision} 
+                onChange={(e) => setIsRevision(e.target.checked)} 
+                style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "var(--accent)" }}
+              />
+              <label htmlFor="is-revision" style={{ margin: 0, textTransform: "none", cursor: "pointer", fontSize: "0.95rem", color: "var(--text-main)" }}>
+                Log this as a Revision session (adds to spaced repetition history)
+              </label>
+            </div>
 
-        <div className="form-group">
-          <label>Questions UNSOLVED / INCORRECT</label>
-          <input 
-            type="number" 
-            className="input" 
-            min="0"
-            value={unsolvedQuestions} 
-            onChange={(e) => setUnsolvedQuestions(parseInt(e.target.value) || 0)} 
-          />
-        </div>
+            {/* Topic Name */}
+            <div className="form-group">
+              <label>Topic Name</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="Topic name or concept studied..."
+                value={topic} 
+                onChange={(e) => setTopic(e.target.value)} 
+              />
+            </div>
 
-        <div className="form-group">
-          <label>Source of Questions (e.g., PYQ, Book, Test Series)</label>
-          <input 
-            type="text" 
-            className="input" 
-            value={source} 
-            onChange={(e) => setSource(e.target.value)} 
-          />
-        </div>
+            {/* Questions Solved (Optional) */}
+            <div className="form-group">
+              <label>Questions Solved (Optional, if any)</label>
+              <input 
+                type="number" 
+                className="input" 
+                min="0"
+                value={questionsSolved || ""} 
+                placeholder="e.g. 5"
+                onChange={(e) => setQuestionsSolved(parseInt(e.target.value) || 0)} 
+              />
+            </div>
 
-        <div className="form-group">
-          <label>Specific Doubts or Concepts to Revisit</label>
-          <textarea 
-            className="input" 
-            style={{ height: "100px", resize: "none" }}
-            placeholder="Write down topics that need clarification..."
-            value={unsolvedDoubts} 
-            onChange={(e) => setUnsolvedDoubts(e.target.value)} 
-          />
-        </div>
+            {/* Short Note */}
+            <div className="form-group">
+              <label>Short Note / Summary</label>
+              <textarea 
+                className="input" 
+                style={{ height: "100px", resize: "none" }}
+                placeholder="Write a brief key summary or formulas covered..."
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Standard Form */}
+            <div className="form-group">
+              <label>Questions SOLVED correctly</label>
+              <input 
+                type="number" 
+                className="input" 
+                min="0"
+                value={questionsSolved} 
+                onChange={(e) => setQuestionsSolved(parseInt(e.target.value) || 0)} 
+              />
+            </div>
 
-        <div className="form-group">
-          <label>Notes / Key Pointers from Session</label>
-          <textarea 
-            className="input" 
-            style={{ height: "100px", resize: "none" }}
-            placeholder="Important formulas, takeaways, or pointers..."
-            value={notes} 
-            onChange={(e) => setNotes(e.target.value)} 
-          />
-        </div>
+            <div className="form-group">
+              <label>Questions UNSOLVED / INCORRECT</label>
+              <input 
+                type="number" 
+                className="input" 
+                min="0"
+                value={unsolvedQuestions} 
+                onChange={(e) => setUnsolvedQuestions(parseInt(e.target.value) || 0)} 
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Source of Questions (e.g., PYQ, Book, Test Series)</label>
+              <input 
+                type="text" 
+                className="input" 
+                value={source} 
+                onChange={(e) => setSource(e.target.value)} 
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Specific Doubts or Concepts to Revisit</label>
+              <textarea 
+                className="input" 
+                style={{ height: "100px", resize: "none" }}
+                placeholder="Write down topics that need clarification..."
+                value={unsolvedDoubts} 
+                onChange={(e) => setUnsolvedDoubts(e.target.value)} 
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Notes / Key Pointers from Session</label>
+              <textarea 
+                className="input" 
+                style={{ height: "100px", resize: "none" }}
+                placeholder="Important formulas, takeaways, or pointers..."
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+              />
+            </div>
+          </>
+        )}
 
         <button type="submit" className="btn btn-primary full-width" style={{ marginTop: "1.5rem", padding: "1rem", fontSize: "1.1rem" }}>
           Save & Exit Lockdown

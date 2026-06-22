@@ -8,11 +8,6 @@ async function updateBlockingRules(isStudying: boolean) {
       removeRuleIds: existingRuleIds
     });
 
-    if (!isStudying) {
-      console.log("Timer stopped. Blocking rules cleared.");
-      return;
-    }
-
     const sanitizeDomain = (url: string) => {
       try {
         let str = url.trim().toLowerCase();
@@ -40,37 +35,39 @@ async function updateBlockingRules(isStudying: boolean) {
 
     const rules: chrome.declarativeNetRequest.Rule[] = [];
 
-    // RULE 1: BLOCK ALL (Priority 1) - Redirect everything not in whitelist
-    rules.push({
-      id: 1,
-      priority: 1,
-      action: {
-        type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
-        redirect: { extensionPath: "/blocked.html" }
-      },
-      condition: {
-        urlFilter: "*",
-        resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
-        excludedRequestDomains: combinedWhitelist
-      }
-    });
-
-    // RULE 2: EXPLICIT ALLOW (Priority 10) - Just to be doubly sure whitelist works
-    if (combinedWhitelist.length > 0) {
+    if (isStudying) {
+      // RULE 1: BLOCK ALL (Priority 1) - Redirect everything not in whitelist
       rules.push({
-        id: 2,
-        priority: 10,
+        id: 1,
+        priority: 1,
         action: {
-          type: chrome.declarativeNetRequest.RuleActionType.ALLOW
+          type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
+          redirect: { extensionPath: "/blocked.html" }
         },
         condition: {
+          urlFilter: "*",
           resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
-          requestDomains: combinedWhitelist
+          excludedRequestDomains: combinedWhitelist
         }
       });
+
+      // RULE 2: EXPLICIT ALLOW (Priority 10) - Just to be doubly sure whitelist works
+      if (combinedWhitelist.length > 0) {
+        rules.push({
+          id: 2,
+          priority: 10,
+          action: {
+            type: chrome.declarativeNetRequest.RuleActionType.ALLOW
+          },
+          condition: {
+            resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
+            requestDomains: combinedWhitelist
+          }
+        });
+      }
     }
 
-    // RULE 3: EXPLICIT BLACKLIST (Priority 20) - Ensure blacklisted sites are blocked even if they were accidentally whitelisted
+    // RULE 3: EXPLICIT BLACKLIST (Priority 20) - Always block blacklisted sites (even if not actively studying)
     if (userBlacklist.length > 0) {
       rules.push({
         id: 3,
@@ -121,8 +118,10 @@ chrome.runtime.onStartup.addListener(() => {
   chrome.storage.local.set({ studying: false });
 });
 
-// Clear rules immediately on service worker startup to avoid stuck rules
-updateBlockingRules(false);
+// Correctly apply dynamic rules on service worker startup based on stored studying state
+chrome.storage.local.get("studying").then((data) => {
+  updateBlockingRules(!!data.studying);
+});
 
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   if (details.frameId === 0) {

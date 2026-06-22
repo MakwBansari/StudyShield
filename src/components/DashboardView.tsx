@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import MotivationQuote from "./MotivationQuote";
 import Timer from "./Timer";
 import { StudySession, Settings } from "@/lib/types";
@@ -14,6 +14,10 @@ interface DashboardViewProps {
 
 export default function DashboardView({ sessions, settings, userName }: DashboardViewProps) {
   const dueRevisions = getDueRevisions(sessions);
+
+  const [timeFilter, setTimeFilter] = useState("weekly");
+  const [subjectFilter, setSubjectFilter] = useState("All");
+  const [breakdownView, setBreakdownView] = useState<"hours" | "questions">("hours");
 
   const getWeeklyPerformance = () => {
     const today = new Date();
@@ -65,10 +69,88 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
   const totalWeeklyHours = weeklyPerf.reduce((acc, d) => acc + d.hours, 0);
   const totalWeeklyQuestions = weeklyPerf.reduce((acc, d) => acc + d.questions, 0);
 
+  // Filtered sessions logic
+  const filteredSessions = sessions.filter(s => {
+    // Subject filter
+    if (subjectFilter !== "All" && s.subject !== subjectFilter) {
+      return false;
+    }
+
+    // Time filter
+    const now = Date.now();
+    const sessionTime = s.startTime;
+    
+    const localNow = new Date();
+    const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()).getTime();
+
+    if (timeFilter === "daily") {
+      return sessionTime >= startOfToday;
+    } else if (timeFilter === "weekly") {
+      const d = new Date();
+      d.setDate(d.getDate() - 6);
+      const startOfWeekly = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      return sessionTime >= startOfWeekly;
+    } else if (timeFilter === "monthly") {
+      const d = new Date();
+      d.setDate(d.getDate() - 29);
+      const startOfMonthly = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      return sessionTime >= startOfMonthly;
+    } else if (timeFilter === "yearly") {
+      const d = new Date();
+      d.setDate(d.getDate() - 364);
+      const startOfYearly = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      return sessionTime >= startOfYearly;
+    } else if (timeFilter === "upto_today") {
+      return true; // All time
+    }
+    
+    return true;
+  });
+
+  const totalMins = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+  const totalHours = totalMins / 60;
+  const totalQs = filteredSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+  const sessionCount = filteredSessions.length;
+
+  // Subject-wise metrics logic
+  const getSubjectMetrics = (subjectName: string) => {
+    const localNow = new Date();
+    const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()).getTime();
+    
+    const dW = new Date();
+    dW.setDate(dW.getDate() - 6);
+    const startOfWeekly = new Date(dW.getFullYear(), dW.getMonth(), dW.getDate()).getTime();
+    
+    const dM = new Date();
+    dM.setDate(dM.getDate() - 29);
+    const startOfMonthly = new Date(dM.getFullYear(), dM.getMonth(), dM.getDate()).getTime();
+    
+    const dY = new Date();
+    dY.setDate(dY.getDate() - 364);
+    const startOfYearly = new Date(dY.getFullYear(), dY.getMonth(), dY.getDate()).getTime();
+
+    const subjSessions = sessions.filter(s => s.subject === subjectName);
+
+    const getStats = (list: typeof sessions) => {
+      const mins = list.reduce((acc, s) => acc + s.durationMinutes, 0);
+      const qs = list.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+      return { hours: mins / 60, questions: qs };
+    };
+
+    return {
+      daily: getStats(subjSessions.filter(s => s.startTime >= startOfToday)),
+      weekly: getStats(subjSessions.filter(s => s.startTime >= startOfWeekly)),
+      monthly: getStats(subjSessions.filter(s => s.startTime >= startOfMonthly)),
+      yearly: getStats(subjSessions.filter(s => s.startTime >= startOfYearly)),
+      total: getStats(subjSessions)
+    };
+  };
+
   return (
-    <section className="tab-dashboard">
+    <section className="tab-dashboard animate-fade-in">
       <MotivationQuote userName={userName} />
 
+      {/* Weekly Performance Bar Chart */}
       <div className="card full-width" style={{ marginBottom: "2rem", padding: "1.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
           <h3 style={{ fontSize: "0.9rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>
@@ -100,6 +182,119 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Subject-Wise Analytics Breakdown Table */}
+      <div className="card full-width" style={{ marginBottom: "2rem", padding: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <h3 style={{ fontSize: "0.9rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>
+              Subject-Wise Analytics
+            </h3>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>
+              Detailed study metrics broken down per subject and time period
+            </p>
+          </div>
+          
+          <div style={{ display: "flex", background: "var(--bg-card-hover)", padding: "2px", borderRadius: "8px", border: "1px solid var(--border)" }}>
+            <button 
+              onClick={() => setBreakdownView("hours")}
+              style={{
+                background: breakdownView === "hours" ? "var(--accent)" : "transparent",
+                color: breakdownView === "hours" ? "#000" : "var(--text-muted)",
+                border: "none",
+                padding: "0.3rem 0.8rem",
+                borderRadius: "6px",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              Hours Studied
+            </button>
+            <button 
+              onClick={() => setBreakdownView("questions")}
+              style={{
+                background: breakdownView === "questions" ? "var(--success)" : "transparent",
+                color: breakdownView === "questions" ? "#fff" : "var(--text-muted)",
+                border: "none",
+                padding: "0.3rem 0.8rem",
+                borderRadius: "6px",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              Questions Solved
+            </button>
+          </div>
+        </div>
+
+        <div className="analytics-table-wrapper" style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.9rem" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>Subject</th>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>Weightage</th>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Daily (Today)</th>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Weekly</th>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Monthly</th>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Yearly</th>
+                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Total (Upto Today)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {GATE_SUBJECTS.map((subj) => {
+                const metrics = getSubjectMetrics(subj.name);
+                const hasStudied = metrics.total.hours > 0;
+                
+                const formatVal = (val: { hours: number, questions: number }) => {
+                  if (breakdownView === "hours") {
+                    return val.hours > 0 ? `${val.hours.toFixed(1)}h` : "-";
+                  } else {
+                    return val.questions > 0 ? `${val.questions} Qs` : "-";
+                  }
+                };
+
+                return (
+                  <tr 
+                    key={subj.name} 
+                    style={{ 
+                      borderBottom: "1px solid rgba(46, 54, 79, 0.4)",
+                      background: hasStudied ? "rgba(245, 166, 35, 0.02)" : "transparent",
+                      transition: "background 0.2s"
+                    }}
+                    className="hover-row"
+                  >
+                    <td style={{ padding: "0.75rem", fontWeight: hasStudied ? 600 : 400, color: hasStudied ? "var(--text-main)" : "var(--text-muted)" }}>
+                      {subj.name}
+                    </td>
+                    <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
+                      {subj.weightage}%
+                    </td>
+                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.daily.hours > 0 ? 600 : 400, color: metrics.daily.hours > 0 ? "var(--accent)" : "inherit" }}>
+                      {formatVal(metrics.daily)}
+                    </td>
+                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.weekly.hours > 0 ? 600 : 400 }}>
+                      {formatVal(metrics.weekly)}
+                    </td>
+                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.monthly.hours > 0 ? 600 : 400 }}>
+                      {formatVal(metrics.monthly)}
+                    </td>
+                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.yearly.hours > 0 ? 600 : 400 }}>
+                      {formatVal(metrics.yearly)}
+                    </td>
+                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.total.hours > 0 ? 600 : 400, color: metrics.total.hours > 0 ? "var(--accent)" : "inherit" }}>
+                      {formatVal(metrics.total)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
       
@@ -159,20 +354,93 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
             </div>
           </div>
 
-          <div className="card session-log-card" style={{ marginTop: "1.5rem" }}>
-            <div className="card-header">
-              <h3>Recent Sessions</h3>
-            </div>
-            <div className="session-timeline">
-              {sessions.slice(-5).reverse().map((s, i) => (
-                <div key={i} className="timeline-item">
-                  <div className="tl-time">{s.date}</div>
-                  <div className="tl-details">
-                    <span className="tl-subject">{s.subject}</span>
-                    <span className="tl-activity">{s.activity}</span>
-                  </div>
+          {/* Interactive Activity Log Card */}
+          <div className="card activity-log-card" style={{ marginTop: "1.5rem" }}>
+            <div className="card-header" style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                <h3 style={{ margin: 0 }}>My Activity Log</h3>
+              </div>
+              
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: "120px" }}>
+                  <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: "0.3rem" }}>Timeframe</label>
+                  <select 
+                    className="input" 
+                    value={timeFilter} 
+                    onChange={(e) => setTimeFilter(e.target.value)}
+                    style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: "var(--bg-card-hover)", border: "1px solid var(--border)", width: "100%" }}
+                  >
+                    <option value="daily">Daily (Today)</option>
+                    <option value="weekly">Weekly (Last 7 Days)</option>
+                    <option value="monthly">Monthly (Last 30 Days)</option>
+                    <option value="yearly">Yearly (Last 365 Days)</option>
+                    <option value="upto_today">Upto Today (All Time)</option>
+                  </select>
                 </div>
-              ))}
+                
+                <div style={{ flex: 1, minWidth: "140px" }}>
+                  <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: "0.3rem" }}>Subject</label>
+                  <select 
+                    className="input" 
+                    value={subjectFilter} 
+                    onChange={(e) => setSubjectFilter(e.target.value)}
+                    style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: "var(--bg-card-hover)", border: "1px solid var(--border)", width: "100%" }}
+                  >
+                    <option value="All">All Subjects</option>
+                    {GATE_SUBJECTS.map(s => (
+                      <option key={s.name} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="activity-stats-summary" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
+              <div style={{ padding: "0.75rem", background: "var(--bg-card-hover)", borderRadius: "8px", border: "1px solid var(--border)", textAlign: "center" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Studied</div>
+                <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--accent)" }}>{totalHours.toFixed(1)}h</div>
+              </div>
+              <div style={{ padding: "0.75rem", background: "var(--bg-card-hover)", borderRadius: "8px", border: "1px solid var(--border)", textAlign: "center" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Solved</div>
+                <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--success)" }}>{totalQs} Qs</div>
+              </div>
+              <div style={{ padding: "0.75rem", background: "var(--bg-card-hover)", borderRadius: "8px", border: "1px solid var(--border)", textAlign: "center" }}>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.25rem" }}>Sessions</div>
+                <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-main)" }}>{sessionCount}</div>
+              </div>
+            </div>
+
+            <div className="session-timeline" style={{ maxHeight: "280px", overflowY: "auto", paddingRight: "5px" }}>
+              {filteredSessions.length > 0 ? (
+                filteredSessions.slice().reverse().map((s, i) => (
+                  <div key={i} className="timeline-item" style={{ paddingBottom: "1.2rem" }}>
+                    <div className="tl-time" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>{s.date}</span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                        {s.durationMinutes} mins
+                      </span>
+                    </div>
+                    <div className="tl-details" style={{ marginTop: "0.25rem" }}>
+                      <span className="tl-subject" style={{ fontWeight: 600 }}>{s.subject}</span>
+                      <span className="tl-activity" style={{ marginLeft: "0.5rem", fontSize: "0.7rem", padding: "2px 6px", borderRadius: "10px", background: "var(--bg-card-hover)", border: "1px solid var(--border)" }}>{s.activity}</span>
+                    </div>
+                    {s.topic && (
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem", fontStyle: "italic" }}>
+                        Topic: {s.topic}
+                      </div>
+                    )}
+                    {s.questionsSolved !== undefined && s.questionsSolved > 0 && (
+                      <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "0.2rem", fontWeight: 500 }}>
+                        ✓ Solved {s.questionsSolved} questions
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "2rem 0" }}>
+                  No sessions logged matching selected filters.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -289,6 +557,9 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
           padding: 1px 5px; 
           border-radius: 3px; 
           margin-left: 0.5rem; 
+        }
+        .hover-row:hover {
+          background: var(--bg-card-hover) !important;
         }
       `}</style>
     </section>
