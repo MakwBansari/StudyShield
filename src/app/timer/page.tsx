@@ -125,39 +125,99 @@ function TimerPageContent() {
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let worker: Worker | null = null;
+
     if (isActive && lastStart !== null) {
-      interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - lastStart) / 1000) + accumulated;
-        
-        if (isPomodoro) {
-          const currentPhase = (elapsed % POMODORO_CYCLE) < POMODORO_STUDY ? "study" : "break";
-          if (currentPhase !== phase) {
-            if (currentPhase === "break") {
-              playAlarm();
-            } else {
-              playBell();
+      const workerCode = `
+        let timerId = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(() => {
+              self.postMessage('tick');
+            }, 1000);
+          } else if (e.data === 'stop') {
+            if (timerId) {
+              clearInterval(timerId);
+              timerId = null;
             }
-            setPhase(currentPhase);
           }
-        }
+        };
+      `;
+      try {
+        const blob = new Blob([workerCode], { type: "application/javascript" });
+        worker = new Worker(URL.createObjectURL(blob));
         
-        setSeconds(elapsed);
-      }, 1000);
-    } else {
-      if (interval) clearInterval(interval);
+        worker.onmessage = () => {
+          const elapsed = Math.floor((Date.now() - lastStart) / 1000) + accumulated;
+          
+          if (isPomodoro) {
+            const currentPhase = (elapsed % POMODORO_CYCLE) < POMODORO_STUDY ? "study" : "break";
+            if (currentPhase !== phase) {
+              if (currentPhase === "break") {
+                playAlarm();
+              } else {
+                playBell();
+              }
+              setPhase(currentPhase);
+            }
+          }
+          
+          setSeconds(elapsed);
+        };
+        
+        worker.postMessage("start");
+      } catch (e) {
+        console.error("Web Worker error, falling back to setInterval:", e);
+        // Fallback to regular setInterval if Web Workers are not supported or blocked
+        const intervalId = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - lastStart) / 1000) + accumulated;
+          if (isPomodoro) {
+            const currentPhase = (elapsed % POMODORO_CYCLE) < POMODORO_STUDY ? "study" : "break";
+            if (currentPhase !== phase) {
+              if (currentPhase === "break") {
+                playAlarm();
+              } else {
+                playBell();
+              }
+              setPhase(currentPhase);
+            }
+          }
+          setSeconds(elapsed);
+        }, 1000);
+        
+        return () => clearInterval(intervalId);
+      }
     }
+
     return () => {
-      if (interval) clearInterval(interval);
+      if (worker) {
+        worker.postMessage("stop");
+        worker.terminate();
+      }
     };
   }, [isActive, lastStart, accumulated, isPomodoro, phase]);
+
+  // Sync timer instantly on visibility focus to prevent visual lag
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isActive && lastStart !== null) {
+        const elapsed = Math.floor((Date.now() - lastStart) / 1000) + accumulated;
+        setSeconds(elapsed);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isActive, lastStart, accumulated]);
 
   const [ambience, setAmbience] = useState<"none" | "white" | "pink" | "brown" | "library" | "gamma">("none");
   const audioCtxRef = React.useRef<any>(null);
   const noiseSourceRef = React.useRef<any>(null);
 
   useEffect(() => {
-    if (ambience !== "none" && isActive) {
+    if (isActive) {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext();
@@ -206,6 +266,18 @@ function TimerPageContent() {
         oscR.start();
         backOsc.start();
         nodes.push(oscL, oscR, backOsc);
+      } else if (ambience === "none") {
+        // Create an inaudible silent node (oscillator at 1Hz with 0.001 gain)
+        // to prevent Chrome/Safari from throttling the background tab
+        const osc = ctx.createOscillator();
+        const silentGain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(1, ctx.currentTime);
+        silentGain.gain.setValueAtTime(0.001, ctx.currentTime);
+        osc.connect(silentGain);
+        silentGain.connect(gain);
+        osc.start();
+        nodes.push(osc);
       } else {
         const bufferSize = 2 * ctx.sampleRate;
         const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
