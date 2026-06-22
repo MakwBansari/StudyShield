@@ -20,8 +20,8 @@ export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist, 
 
   return (
     <aside className="sidebar">
-      <div className="logo" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <img src="/logo.jpg" alt="StudyShield Logo" style={{ width: "32px", height: "32px", borderRadius: "50%" }} />
+      <div className="logo" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <img src="/logo.jpg" alt="StudyShield Logo" style={{ width: "44px", height: "44px", borderRadius: "50%" }} />
         StudyShield<span>.</span>
       </div>
       
