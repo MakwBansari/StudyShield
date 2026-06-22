@@ -17,7 +17,6 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
 
   const [timeFilter, setTimeFilter] = useState("weekly");
   const [subjectFilter, setSubjectFilter] = useState("All");
-  const [breakdownView, setBreakdownView] = useState<"hours" | "questions">("hours");
 
   const getWeeklyPerformance = () => {
     const today = new Date();
@@ -185,118 +184,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
         </div>
       </div>
 
-      {/* Subject-Wise Analytics Breakdown Table */}
-      <div className="card full-width" style={{ marginBottom: "2rem", padding: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-          <div>
-            <h3 style={{ fontSize: "0.9rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>
-              Subject-Wise Analytics
-            </h3>
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>
-              Detailed study metrics broken down per subject and time period
-            </p>
-          </div>
-          
-          <div style={{ display: "flex", background: "var(--bg-card-hover)", padding: "2px", borderRadius: "8px", border: "1px solid var(--border)" }}>
-            <button 
-              onClick={() => setBreakdownView("hours")}
-              style={{
-                background: breakdownView === "hours" ? "var(--accent)" : "transparent",
-                color: breakdownView === "hours" ? "#000" : "var(--text-muted)",
-                border: "none",
-                padding: "0.3rem 0.8rem",
-                borderRadius: "6px",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s"
-              }}
-            >
-              Hours Studied
-            </button>
-            <button 
-              onClick={() => setBreakdownView("questions")}
-              style={{
-                background: breakdownView === "questions" ? "var(--success)" : "transparent",
-                color: breakdownView === "questions" ? "#fff" : "var(--text-muted)",
-                border: "none",
-                padding: "0.3rem 0.8rem",
-                borderRadius: "6px",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s"
-              }}
-            >
-              Questions Solved
-            </button>
-          </div>
-        </div>
 
-        <div className="analytics-table-wrapper" style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.9rem" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>Subject</th>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>Weightage</th>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Daily (Today)</th>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Weekly</th>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Monthly</th>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Yearly</th>
-                <th style={{ padding: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>Total (Upto Today)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {GATE_SUBJECTS.map((subj) => {
-                const metrics = getSubjectMetrics(subj.name);
-                const hasStudied = metrics.total.hours > 0;
-                
-                const formatVal = (val: { hours: number, questions: number }) => {
-                  if (breakdownView === "hours") {
-                    return val.hours > 0 ? `${val.hours.toFixed(1)}h` : "-";
-                  } else {
-                    return val.questions > 0 ? `${val.questions} Qs` : "-";
-                  }
-                };
-
-                return (
-                  <tr 
-                    key={subj.name} 
-                    style={{ 
-                      borderBottom: "1px solid rgba(46, 54, 79, 0.4)",
-                      background: hasStudied ? "rgba(245, 166, 35, 0.02)" : "transparent",
-                      transition: "background 0.2s"
-                    }}
-                    className="hover-row"
-                  >
-                    <td style={{ padding: "0.75rem", fontWeight: hasStudied ? 600 : 400, color: hasStudied ? "var(--text-main)" : "var(--text-muted)" }}>
-                      {subj.name}
-                    </td>
-                    <td style={{ padding: "0.75rem", color: "var(--text-muted)" }}>
-                      {subj.weightage}%
-                    </td>
-                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.daily.hours > 0 ? 600 : 400, color: metrics.daily.hours > 0 ? "var(--accent)" : "inherit" }}>
-                      {formatVal(metrics.daily)}
-                    </td>
-                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.weekly.hours > 0 ? 600 : 400 }}>
-                      {formatVal(metrics.weekly)}
-                    </td>
-                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.monthly.hours > 0 ? 600 : 400 }}>
-                      {formatVal(metrics.monthly)}
-                    </td>
-                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.yearly.hours > 0 ? 600 : 400 }}>
-                      {formatVal(metrics.yearly)}
-                    </td>
-                    <td style={{ padding: "0.75rem", textAlign: "center", fontWeight: metrics.total.hours > 0 ? 600 : 400, color: metrics.total.hours > 0 ? "var(--accent)" : "inherit" }}>
-                      {formatVal(metrics.total)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
       
       <div className="dashboard-grid">
         <div className="timer-section">
