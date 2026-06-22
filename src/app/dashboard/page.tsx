@@ -61,6 +61,11 @@ export default function DashboardPage() {
     }
   };
 
+  const handleUpdateExamDate = (newDate: string) => {
+    StorageAPI.saveSettings({ examDate: newDate });
+    setSettings(prev => ({ ...prev, examDate: newDate }));
+  };
+
   const activeSubject = settings.goals?.find(g => g.isActive)?.subject;
 
   if (!user) return null;
@@ -80,6 +85,7 @@ export default function DashboardPage() {
         setActiveTab={setActiveTab} 
         examDate={settings.examDate}
         whitelist={settings.whitelist}
+        onUpdateExamDate={handleUpdateExamDate}
       />
 
       <main className="main-content">

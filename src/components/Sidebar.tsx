@@ -7,9 +7,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   examDate?: string;
   whitelist?: string[];
+  onUpdateExamDate?: (date: string) => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist, onUpdateExamDate }: SidebarProps) {
   const calculateDaysToGATE = () => {
     if (!examDate) return "--";
     const diff = new Date(examDate).getTime() - new Date().getTime();
@@ -25,7 +26,27 @@ export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist }
         <div className="countdown-value">{calculateDaysToGATE()}</div>
         <div className="countdown-label">Days to GATE</div>
         <div className="countdown-pace">Pace: 0% covered</div>
-        <button className="btn btn-small">Set Exam Date</button>
+        <label className="btn btn-small" style={{ display: "inline-block", cursor: "pointer", position: "relative" }}>
+          Set Exam Date
+          <input 
+            type="date" 
+            value={examDate || ""} 
+            onChange={(e) => {
+              if (e.target.value && onUpdateExamDate) {
+                onUpdateExamDate(e.target.value);
+              }
+            }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              opacity: 0,
+              cursor: "pointer"
+            }}
+          />
+        </label>
       </div>
 
       <nav className="main-nav">
