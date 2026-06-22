@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 
 interface SidebarProps {
   activeTab: string;
@@ -11,6 +11,19 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist, onUpdateExamDate }: SidebarProps) {
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const handleButtonClick = () => {
+    if (dateInputRef.current) {
+      try {
+        dateInputRef.current.showPicker();
+      } catch (e) {
+        dateInputRef.current.focus();
+        dateInputRef.current.click();
+      }
+    }
+  };
+
   const calculateDaysToGATE = () => {
     if (!examDate) return "--";
     const diff = new Date(examDate).getTime() - new Date().getTime();
@@ -26,9 +39,12 @@ export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist, 
         <div className="countdown-value">{calculateDaysToGATE()}</div>
         <div className="countdown-label">Days to GATE</div>
         <div className="countdown-pace">Pace: 0% covered</div>
-        <label className="btn btn-small" style={{ display: "inline-block", cursor: "pointer", position: "relative" }}>
-          Set Exam Date
+        <div style={{ display: "inline-block", position: "relative" }}>
+          <button className="btn btn-small" onClick={handleButtonClick}>
+            Set Exam Date
+          </button>
           <input 
+            ref={dateInputRef}
             type="date" 
             value={examDate || ""} 
             onChange={(e) => {
@@ -40,13 +56,13 @@ export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist, 
               position: "absolute",
               top: 0,
               left: 0,
-              width: "100%",
-              height: "100%",
+              width: 0,
+              height: 0,
               opacity: 0,
-              cursor: "pointer"
+              pointerEvents: "none"
             }}
           />
-        </label>
+        </div>
       </div>
 
       <nav className="main-nav">
