@@ -32,6 +32,22 @@ const buildOptions = [
     format: "iife",
     target: "es2020",
     minify: !isDev,
+  },
+  {
+    entryPoints: ["src/extension/blocked.ts"],
+    outfile: path.join(outDir, "blocked.js"),
+    bundle: true,
+    format: "iife",
+    target: "es2020",
+    minify: !isDev,
+  },
+  {
+    entryPoints: ["src/extension/popup.ts"],
+    outfile: path.join(outDir, "popup.js"),
+    bundle: true,
+    format: "iife",
+    target: "es2020",
+    minify: !isDev,
   }
 ];
 

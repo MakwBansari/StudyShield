@@ -73,17 +73,17 @@ function TimerPageContent() {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "square";
-        osc.frequency.setValueAtTime(880, time);
-        gain.gain.setValueAtTime(0.2, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        osc.frequency.setValueAtTime(987.77, time); // High-pitched, clear alert tone (B5)
+        gain.gain.setValueAtTime(0.8, time); // Loud alert volume (0.8 instead of 0.2)
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3); // Longer decay (0.3s)
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(time);
-        osc.stop(time + 0.2);
+        osc.stop(time + 0.35);
       };
 
-      for (let i = 0; i < 4; i++) {
-        playBeep(ctx.currentTime + i * 0.4);
+      for (let i = 0; i < 5; i++) { // 5 distinct beeps
+        playBeep(ctx.currentTime + i * 0.5); // Spaced 0.5s apart
       }
     } catch (e) {
       console.error("Audio API error:", e);

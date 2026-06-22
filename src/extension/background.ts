@@ -1,13 +1,14 @@
+let isUpdatingRules = false;
+let pendingUpdate: { isStudying: boolean } | null = null;
+
 async function updateBlockingRules(isStudying: boolean) {
+  if (isUpdatingRules) {
+    pendingUpdate = { isStudying };
+    return;
+  }
+  isUpdatingRules = true;
+
   try {
-    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-    const existingRuleIds = existingRules.map(r => r.id);
-
-    // Always clear existing rules first to avoid conflicts
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: existingRuleIds
-    });
-
     const sanitizeDomain = (url: string) => {
       try {
         let str = url.trim().toLowerCase();
@@ -22,9 +23,12 @@ async function updateBlockingRules(isStudying: boolean) {
       }
     };
 
+    const defaultWhitelist = ["localhost", "127.0.0.1", "nptel.ac.in", "gateoverflow.in", "geeksforgeeks.org", "youtube.com", "drive.google.com", "ankiweb.net", "github.com"];
+    const defaultBlacklist = ["facebook.com", "instagram.com", "twitter.com", "reddit.com", "netflix.com"];
+
     const data = await chrome.storage.local.get(["whitelist", "blacklist", "activeStudyDomain"]);
-    const userWhitelist = ((data.whitelist as string[]) || []).map(sanitizeDomain).filter(Boolean) as string[];
-    const userBlacklist = ((data.blacklist as string[]) || []).map(sanitizeDomain).filter(Boolean) as string[];
+    const userWhitelist = ((data.whitelist as string[]) || defaultWhitelist).map(sanitizeDomain).filter(Boolean) as string[];
+    const userBlacklist = ((data.blacklist as string[]) || defaultBlacklist).map(sanitizeDomain).filter(Boolean) as string[];
 
     // Always allow the app itself and essential tools
     const internalWhitelist = ["localhost", "127.0.0.1", chrome.runtime.id];
@@ -83,44 +87,68 @@ async function updateBlockingRules(isStudying: boolean) {
       });
     }
 
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const existingRuleIds = existingRules.map(r => r.id);
+
+    // Atomically swap the rules in a single update call
     await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
       addRules: rules
     });
     console.log("Blocking rules updated successfully.");
   } catch (err) {
     console.error("Error updating blocking rules:", err);
+  } finally {
+    isUpdatingRules = false;
+    if (pendingUpdate !== null) {
+      const next = pendingUpdate;
+      pendingUpdate = null;
+      updateBlockingRules(next.isStudying);
+    }
   }
 }
 
-let activeStudyTabId: number | null = null;
-
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.action === "START_STUDYING" && sender.tab?.id) {
-    activeStudyTabId = sender.tab.id;
+    chrome.storage.local.set({ activeStudyTabId: sender.tab.id });
   } else if (message.action === "STOP_STUDYING") {
-    activeStudyTabId = null;
+    chrome.storage.local.remove("activeStudyTabId");
   }
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  if (tabId === activeStudyTabId) {
-    activeStudyTabId = null;
-    chrome.storage.local.set({ studying: false });
-    chrome.storage.local.remove("activeStudyDomain");
-  }
+  chrome.storage.local.get("activeStudyTabId").then((data) => {
+    if (tabId === data.activeStudyTabId) {
+      chrome.storage.local.set({ studying: false });
+      chrome.storage.local.remove(["activeStudyDomain", "activeStudyTabId"]);
+    }
+  });
 });
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ studying: false });
 });
 
-chrome.runtime.onStartup.addListener(() => {
-  chrome.storage.local.set({ studying: false });
+chrome.runtime.onStartup.addListener(async () => {
+  // Safe check on startup: only clear studying state if no timer tabs are restored
+  const tabs = await chrome.tabs.query({ url: ["*://localhost/*/timer*", "*://127.0.0.1/*/timer*"] });
+  if (tabs.length === 0) {
+    chrome.storage.local.set({ studying: false });
+  }
 });
 
-// Correctly apply dynamic rules on service worker startup based on stored studying state
-chrome.storage.local.get("studying").then((data) => {
-  updateBlockingRules(!!data.studying);
+// Guard checks on startup/wakeup to prevent redundant rule writes
+chrome.storage.local.get(["studying", "blacklist"]).then(async (data) => {
+  const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+  const hasRule1 = existingRules.some(r => r.id === 1);
+  const hasRule3 = existingRules.some(r => r.id === 3);
+
+  const needsRule1 = !!data.studying;
+  const needsRule3 = Array.isArray(data.blacklist) && data.blacklist.length > 0;
+
+  if (hasRule1 !== needsRule1 || hasRule3 !== needsRule3) {
+    updateBlockingRules(!!data.studying);
+  }
 });
 
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
@@ -145,3 +173,4 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     }
   }
 });
+
