@@ -9,8 +9,12 @@ import StatsView from "@/components/StatsView";
 import MockView from "@/components/MockView";
 import AIView from "@/components/AIView";
 import ProfileView from "@/components/ProfileView";
+import MindMapView from "@/components/MindMapView";
+import MistakeLogView from "@/components/MistakeLogView";
 import { StorageAPI } from "@/lib/storage";
 import { Settings, StudySession } from "@/lib/types";
+
+import MorningBriefing from "@/components/MorningBriefing";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -18,6 +22,7 @@ export default function DashboardPage() {
   const [settings, setSettings] = useState<Settings>({});
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [tests, setTests] = useState<any[]>([]);
+  const [showBriefing, setShowBriefing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,9 +32,16 @@ export default function DashboardPage() {
       return;
     }
     setUser(JSON.parse(storedUser));
-    setSettings(StorageAPI.getSettings());
+    const currentSettings = StorageAPI.getSettings();
+    setSettings(currentSettings);
     setSessions(StorageAPI.getSessions());
     setTests(StorageAPI.getMockTests());
+
+    // Check for daily briefing
+    const today = new Date().toISOString().split("T")[0];
+    if (currentSettings.lastBriefingDate !== today) {
+      setShowBriefing(true);
+    }
   }, [router]);
 
   const handleLogout = () => {
@@ -38,10 +50,31 @@ export default function DashboardPage() {
     router.push("/");
   };
 
+  const handleDismissBriefing = (action: "revise" | "study") => {
+    const today = new Date().toISOString().split("T")[0];
+    StorageAPI.saveSettings({ lastBriefingDate: today });
+    setSettings({ ...settings, lastBriefingDate: today });
+    setShowBriefing(false);
+    
+    if (action === "revise") {
+      setActiveTab("mindmap"); // Route to mind map for revision
+    }
+  };
+
+  const activeSubject = settings.goals?.find(g => g.isActive)?.subject;
+
   if (!user) return null;
 
   return (
     <div className="app-container">
+      {showBriefing && (
+        <MorningBriefing 
+          settings={settings} 
+          onDismiss={handleDismissBriefing}
+          activeSubject={activeSubject}
+          examDate={settings.examDate}
+        />
+      )}
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -58,6 +91,7 @@ export default function DashboardPage() {
             {activeTab === "goals" && "Study Goals"}
             {activeTab === "ai" && "AI Planner"}
             {activeTab === "profile" && "Profile"}
+            {activeTab === "mindmap" && "Syllabus Mind Map"}
           </h2>
           <div className="user-controls">
             <span id="user-name-display">{(user.name && user.name !== "N/A") ? user.name : (user.email || "User")}</span>
@@ -86,6 +120,10 @@ export default function DashboardPage() {
             />
           )}
           {activeTab === "ai" && <AIView sessions={sessions} settings={settings} />}
+          {activeTab === "mindmap" && <MindMapView settings={settings} onUpdate={() => {
+                setSettings(StorageAPI.getSettings());
+              }} />}
+          {activeTab === "mistakes" && <MistakeLogView />}
           {activeTab === "profile" && (
     <ProfileView 
               user={user} 

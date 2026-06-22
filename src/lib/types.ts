@@ -18,6 +18,17 @@ export interface ExtensionEscape {
   subject?: string;
 }
 
+export type SubjectState = "not_studied" | "ongoing" | "completed";
+
+export interface Mistake {
+  id: string;
+  subject: string;
+  topic: string;
+  description: string;
+  correctConcept: string;
+  timestamp: number;
+}
+
 export interface SubjectGoal {
   subject: string;
   isActive: boolean;
@@ -26,6 +37,9 @@ export interface SubjectGoal {
   totalSyllabusHours?: number;
   totalQuestions?: number;
   cheatsheet?: string;
+  state?: SubjectState;
+  completionDate?: number; // Timestamp when marked completed
+  revisionHistory?: number[]; // Timestamps of when notes were revised
 }
 
 export interface MockTest {
@@ -45,4 +59,5 @@ export interface Settings {
   currentTimerSession?: any;
   targetScore?: number;
   preferredStartTime?: string;
+  lastBriefingDate?: string; // YYYY-MM-DD to show daily briefing once
 }

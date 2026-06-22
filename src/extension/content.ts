@@ -12,8 +12,10 @@ window.addEventListener("message", (event) => {
         whitelist: p.whitelist || [],
         blacklist: p.blacklist || []
       });
+      chrome.runtime.sendMessage({ action: "START_STUDYING" });
     } else {
       chrome.storage.local.set({ studying: false });
+      chrome.runtime.sendMessage({ action: "STOP_STUDYING" });
     }
   } else if (event.data.action === "UPDATE_TOTAL_TIME") {
     chrome.storage.local.get(["todayTotalMinutes"], (res) => {
@@ -26,6 +28,12 @@ window.addEventListener("message", (event) => {
   } else if (event.data.action === "GET_TOTAL_TIME") {
     chrome.storage.local.get(["todayTotalMinutes"], (res) => {
       window.postMessage({ type: "FROM_EXTENSION", action: "TOTAL_TIME_DATA", payload: res.todayTotalMinutes || 0 }, "*");
+    });
+  } else if (event.data.action === "UPDATE_SETTINGS") {
+    const p = event.data.payload;
+    chrome.storage.local.set({
+      whitelist: p.whitelist || [],
+      blacklist: p.blacklist || []
     });
   }
 });

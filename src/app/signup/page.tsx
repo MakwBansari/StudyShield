@@ -23,14 +23,27 @@ export default function SignupPage() {
     e.preventDefault();
     localStorage.setItem("user", JSON.stringify({ name: formData.name, email: formData.email }));
     
-    // Parse whitelist and blacklist
-    const whitelistArr = formData.whitelist.split("\n").map(s => s.trim()).filter(Boolean);
-    const blacklistArr = formData.blacklist.split("\n").map(s => s.trim()).filter(Boolean);
+    // Parse and sanitize whitelist and blacklist
+    const sanitize = (url: string) => {
+      try {
+        let str = url.trim().toLowerCase();
+        if (!str || !str.includes(".")) return "";
+        if (!str.startsWith("http://") && !str.startsWith("https://")) {
+          str = "https://" + str;
+        }
+        return new URL(str).hostname.replace(/^www\./, "");
+      } catch (e) {
+        return url.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+      }
+    };
+
+    const whitelistArr = Array.from(new Set(formData.whitelist.split("\n").map(sanitize).filter(Boolean)));
+    const blacklistArr = Array.from(new Set(formData.blacklist.split("\n").map(sanitize).filter(Boolean)));
 
     // Save preferences
     StorageAPI.saveSettings({
-      whitelist: whitelistArr.length > 0 ? whitelistArr : undefined,
-      blacklist: blacklistArr.length > 0 ? blacklistArr : undefined,
+      whitelist: whitelistArr,
+      blacklist: blacklistArr,
     });
     
     router.push("/dashboard");
@@ -80,19 +93,25 @@ export default function SignupPage() {
 
           {step === 2 && (
             <div id="signup-step-2">
-              <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem", color: "var(--text-muted)" }}>Whitelist (Max 10)</h3>
+              <h3 style={{ fontSize: "1rem", marginBottom: "0.2rem", color: "var(--text-main)" }}>Whitelist (Allowed)</h3>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.8rem" }}>
+                Everything else will be blocked. Enter URLs like "google.com" or full links.
+              </p>
               <textarea
                 className="input"
-                placeholder="e.g. google.com, stackoverflow.com (one per line)"
+                placeholder="e.g. nptel.ac.in, github.com (one per line)"
                 style={{ height: "100px", resize: "none" }}
                 value={formData.whitelist}
                 onChange={(e) => setFormData({ ...formData, whitelist: e.target.value })}
               ></textarea>
               
-              <h3 style={{ fontSize: "1rem", marginTop: "1rem", marginBottom: "0.5rem", color: "var(--text-muted)" }}>Blacklist (Max 10)</h3>
+              <h3 style={{ fontSize: "1rem", marginTop: "1rem", marginBottom: "0.2rem", color: "var(--text-main)" }}>Blacklist (Distractions)</h3>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.8rem" }}>
+                Explicitly block these even if whitelisted.
+              </p>
               <textarea
                 className="input"
-                placeholder="e.g. facebook.com, instagram.com (one per line)"
+                placeholder="e.g. instagram.com, youtube.com (one per line)"
                 style={{ height: "100px", resize: "none" }}
                 value={formData.blacklist}
                 onChange={(e) => setFormData({ ...formData, blacklist: e.target.value })}

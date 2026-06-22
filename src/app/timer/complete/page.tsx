@@ -1,11 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StorageAPI } from "@/lib/storage";
 import { StudySession } from "@/lib/types";
 
 export default function TimerCompletePage() {
+  return (
+    <Suspense fallback={
+      <div className="fullscreen-complete-container">
+        <p style={{ color: "var(--text-muted)", fontSize: "1.2rem" }}>Loading session details...</p>
+      </div>
+    }>
+      <TimerCompletePageContent />
+    </Suspense>
+  );
+}
+
+function TimerCompletePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

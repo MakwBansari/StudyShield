@@ -11,8 +11,8 @@ export function useTimer() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [accumulatedTime, setAccumulatedTime] = useState(0);
 
+  const POMODORO_CYCLE = 55 * 60;
   const POMODORO_STUDY = 45 * 60;
-  const POMODORO_BREAK = 10 * 60;
 
   const playBell = () => {
     try {
@@ -46,14 +46,10 @@ export function useTimer() {
         const elapsed = Math.floor((now - startTime) / 1000) + accumulatedTime;
         
         if (isPomodoro) {
-          const limit = phase === "study" ? POMODORO_STUDY : POMODORO_BREAK;
-          if (elapsed >= limit) {
+          const currentPhase = (elapsed % POMODORO_CYCLE) < POMODORO_STUDY ? "study" : "break";
+          if (currentPhase !== phase) {
             playBell();
-            setPhase(p => p === "study" ? "break" : "study");
-            setStartTime(Date.now());
-            setAccumulatedTime(0);
-            setSeconds(0);
-            return;
+            setPhase(currentPhase);
           }
         }
         

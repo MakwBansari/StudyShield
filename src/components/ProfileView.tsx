@@ -19,9 +19,36 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
   const [exportSubject, setExportSubject] = useState("All");
 
   const handleSave = () => {
+    const sanitize = (url: string) => {
+      try {
+        let str = url.trim().toLowerCase();
+        if (!str) return "";
+        // If it doesn't look like a URL, try making it one
+        if (!str.includes(".") ) return ""; // Not a valid domain
+        if (!str.startsWith("http://") && !str.startsWith("https://")) {
+          str = "https://" + str;
+        }
+        const u = new URL(str);
+        // Strip 'www.' to ensure it matches both base and all subdomains in the extension logic
+        return u.hostname.replace(/^www\./, "");
+      } catch (e) {
+        // Fallback: just trim and strip protocol/www manually
+        return url.trim().toLowerCase()
+          .replace(/^https?:\/\//, "")
+          .replace(/^www\./, "")
+          .split("/")[0];
+      }
+    };
+
+    const cleanWhitelist = Array.from(new Set(whitelist.split("\n").map(sanitize).filter(s => s && s.includes("."))));
+    const cleanBlacklist = Array.from(new Set(blacklist.split("\n").map(sanitize).filter(s => s && s.includes("."))));
+
+    setWhitelist(cleanWhitelist.join("\n"));
+    setBlacklist(cleanBlacklist.join("\n"));
+
     StorageAPI.saveSettings({
-      whitelist: whitelist.split("\n").map(s => s.trim()).filter(s => s !== ""),
-      blacklist: blacklist.split("\n").map(s => s.trim()).filter(s => s !== ""),
+      whitelist: cleanWhitelist,
+      blacklist: cleanBlacklist,
     });
     
     // Save user name
@@ -170,22 +197,30 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
         <h3>Focus Settings</h3>
         
         <div className="info-group">
-          <label>Whitelist (One per line)</label>
+          <label>Whitelist (Allowed Domains)</label>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+            Everything else will be blocked. Enter domains like "google.com" or full links.
+          </p>
           <textarea 
             className="input" 
             style={{ height: "100px" }}
             value={whitelist}
             onChange={(e) => setWhitelist(e.target.value)}
+            placeholder="gmail.com&#10;github.com"
           ></textarea>
         </div>
 
         <div className="info-group">
-          <label>Blacklist (One per line)</label>
+          <label>Blacklist (Explicitly Blocked)</label>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+            Websites you want to stay away from even if they are subdomains of allowed sites.
+          </p>
           <textarea 
             className="input" 
             style={{ height: "100px" }}
             value={blacklist}
             onChange={(e) => setBlacklist(e.target.value)}
+            placeholder="instagram.com&#10;facebook.com"
           ></textarea>
         </div>
 

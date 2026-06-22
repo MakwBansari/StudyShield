@@ -60,7 +60,18 @@ export const StorageAPI = {
     const email = this.getCurrentUser();
     const key = email ? `study_settings_${email}` : "study_settings";
     const current = this.getSettings();
-    localStorage.setItem(key, JSON.stringify({ ...current, ...settings }));
+    const updated = { ...current, ...settings };
+    localStorage.setItem(key, JSON.stringify(updated));
+
+    // Also notify extension so it updates Chrome storage rules instantly
+    window.postMessage({
+      type: "FROM_PAGE",
+      action: "UPDATE_SETTINGS",
+      payload: { 
+        whitelist: updated.whitelist || [],
+        blacklist: updated.blacklist || []
+      }
+    }, "*");
   },
 
   setExtensionStudying(isStudying: boolean, subject?: string, startTime?: number) {
@@ -117,5 +128,35 @@ export const StorageAPI = {
     const tests = this.getMockTests();
     tests.push(test);
     localStorage.setItem(key, JSON.stringify(tests));
+  },
+
+  getMistakes(): import('./types').Mistake[] {
+    if (!isClient) return [];
+    try {
+      const email = this.getCurrentUser();
+      const key = email ? `mistakes_${email}` : "mistakes";
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveMistake(mistake: import('./types').Mistake) {
+    if (!isClient) return;
+    const email = this.getCurrentUser();
+    const key = email ? `mistakes_${email}` : "mistakes";
+    const mistakes = this.getMistakes();
+    mistakes.push(mistake);
+    localStorage.setItem(key, JSON.stringify(mistakes));
+  },
+
+  deleteMistake(id: string) {
+    if (!isClient) return;
+    const email = this.getCurrentUser();
+    const key = email ? `mistakes_${email}` : "mistakes";
+    let mistakes = this.getMistakes();
+    mistakes = mistakes.filter(m => m.id !== id);
+    localStorage.setItem(key, JSON.stringify(mistakes));
   }
 };

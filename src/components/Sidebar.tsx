@@ -32,6 +32,8 @@ export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist }
         {[
           { id: "dashboard", label: "Dashboard" },
           { id: "stats", label: "Statistics" },
+          { id: "mindmap", label: "Syllabus Mind Map" },
+          { id: "mistakes", label: "Mistake Log" },
           { id: "mock", label: "Mock Tests" },
           { id: "goals", label: "Study Goals" },
           { id: "ai", label: "AI Planner" },
