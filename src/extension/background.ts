@@ -100,15 +100,8 @@ let activeStudyTabId: number | null = null;
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.action === "START_STUDYING" && sender.tab?.id) {
     activeStudyTabId = sender.tab.id;
-    if (sender.tab.url) {
-      try {
-        const url = new URL(sender.tab.url);
-        chrome.storage.local.set({ activeStudyDomain: url.hostname });
-      } catch (e) {}
-    }
   } else if (message.action === "STOP_STUDYING") {
     activeStudyTabId = null;
-    chrome.storage.local.remove("activeStudyDomain");
   }
 });
 
@@ -147,7 +140,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area === "local") {
-    if (changes.studying || changes.whitelist || changes.blacklist) {
+    if (changes.studying || changes.whitelist || changes.blacklist || changes.activeStudyDomain) {
       const data = await chrome.storage.local.get("studying");
       updateBlockingRules(!!data.studying);
     }

@@ -6,6 +6,7 @@ window.addEventListener("message", (event) => {
     if (p.isStudying) {
       chrome.storage.local.set({ 
         studying: true, 
+        activeStudyDomain: window.location.hostname,
         subject: p.subject, 
         startTime: p.startTime, 
         escapeCount: 0,
@@ -15,6 +16,7 @@ window.addEventListener("message", (event) => {
       chrome.runtime.sendMessage({ action: "START_STUDYING" });
     } else {
       chrome.storage.local.set({ studying: false });
+      chrome.storage.local.remove("activeStudyDomain");
       chrome.runtime.sendMessage({ action: "STOP_STUDYING" });
     }
   } else if (event.data.action === "UPDATE_TOTAL_TIME") {
