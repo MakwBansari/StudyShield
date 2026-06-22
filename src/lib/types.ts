@@ -11,6 +11,7 @@ export interface StudySession {
   unsolvedQuestions?: number;
   source?: string;
   unsolvedDoubts?: string;
+  notes?: string;
 }
 
 export interface ExtensionEscape {
@@ -60,4 +61,5 @@ export interface Settings {
   targetScore?: number;
   preferredStartTime?: string;
   lastBriefingDate?: string; // YYYY-MM-DD to show daily briefing once
+  lastRevisionNotesDate?: string; // YYYY-MM-DD to show revision notes once
 }

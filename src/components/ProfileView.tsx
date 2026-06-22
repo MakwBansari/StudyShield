@@ -98,20 +98,21 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
     }
 
     // CSV Generation
-    const headers = ["Date", "Subject", "Activity", "Topic", "Duration (mins)", "Questions Solved", "Unsolved Questions", "Source", "Doubts"];
+    const headers = ["Date", "Subject", "Activity", "Topic", "Duration (mins)", "Questions Solved", "Unsolved Questions", "Source", "Doubts", "Notes"];
     const csvRows = filtered.map(s => [
       s.date,
-      `"${s.subject}"`,
-      `"${s.activity}"`,
-      `"${s.topic || ""}"`,
+      `"${(s.subject || "").replace(/"/g, '""')}"`,
+      `"${(s.activity || "").replace(/"/g, '""')}"`,
+      `"${(s.topic || "").replace(/"/g, '""')}"`,
       s.durationMinutes,
       s.questionsSolved || 0,
       s.unsolvedQuestions || 0,
-      `"${s.source || "General Study"}"`,
-      `"${s.unsolvedDoubts || ""}"`
+      `"${(s.source || "General Study").replace(/"/g, '""')}"`,
+      `"${(s.unsolvedDoubts || "").replace(/"/g, '""')}"`,
+      `"${(s.notes || "").replace(/"/g, '""')}"`
     ].join(","));
 
-    const csvContent = [headers.join(","), ...csvRows].join("\n");
+    const csvContent = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

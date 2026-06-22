@@ -47,7 +47,7 @@ function TimerCompletePageContent() {
       id: crypto.randomUUID(),
       subject,
       activity,
-      topic: topic || notes,
+      topic: topic || undefined,
       startTime: Date.now() - duration * 60 * 1000,
       endTime: Date.now(),
       durationMinutes: duration,
@@ -56,6 +56,7 @@ function TimerCompletePageContent() {
       unsolvedQuestions,
       source,
       unsolvedDoubts: unsolvedDoubts || undefined,
+      notes: notes || undefined,
     };
 
     StorageAPI.saveSession(session);

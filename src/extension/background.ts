@@ -69,22 +69,22 @@ async function updateBlockingRules(isStudying: boolean) {
           }
         });
       }
-    }
 
-    // RULE 3: EXPLICIT BLACKLIST (Priority 20) - Always block blacklisted sites (even if not actively studying)
-    if (userBlacklist.length > 0) {
-      rules.push({
-        id: 3,
-        priority: 20,
-        action: {
-          type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
-          redirect: { extensionPath: "/blocked.html" }
-        },
-        condition: {
-          resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
-          requestDomains: userBlacklist
-        }
-      });
+      // RULE 3: EXPLICIT BLACKLIST (Priority 20) - Block blacklisted sites when studying
+      if (userBlacklist.length > 0) {
+        rules.push({
+          id: 3,
+          priority: 20,
+          action: {
+            type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
+            redirect: { extensionPath: "/blocked.html" }
+          },
+          condition: {
+            resourceTypes: [chrome.declarativeNetRequest.ResourceType.MAIN_FRAME],
+            requestDomains: userBlacklist
+          }
+        });
+      }
     }
 
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
@@ -144,7 +144,7 @@ chrome.storage.local.get(["studying", "blacklist"]).then(async (data) => {
   const hasRule3 = existingRules.some(r => r.id === 3);
 
   const needsRule1 = !!data.studying;
-  const needsRule3 = Array.isArray(data.blacklist) && data.blacklist.length > 0;
+  const needsRule3 = !!data.studying && Array.isArray(data.blacklist) && data.blacklist.length > 0;
 
   if (hasRule1 !== needsRule1 || hasRule3 !== needsRule3) {
     updateBlockingRules(!!data.studying);
