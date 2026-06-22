@@ -5,7 +5,10 @@ export default function Home() {
   return (
     <div className={styles.landingPage}>
       <nav className={styles.landingNav}>
-        <div className="logo">StudyShield<span>.</span></div>
+        <div className="logo" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <img src="/logo.jpg" alt="StudyShield Logo" style={{ width: "32px", height: "32px", borderRadius: "50%" }} />
+          StudyShield<span>.</span>
+        </div>
         <div className={styles.navLinks}>
           <Link href="/login" className={styles.navLink}>Login</Link>
           <Link href="/signup" className="btn btn-primary">Get Started</Link>
@@ -14,6 +17,9 @@ export default function Home() {
 
       <header className={styles.landingHero}>
         <div className={styles.heroContent}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+            <img src="/logo.jpg" alt="StudyShield Logo" style={{ width: "120px", height: "120px", borderRadius: "50%", boxShadow: "0 0 30px rgba(245, 166, 35, 0.2)" }} />
+          </div>
           <div className={styles.badge}>Engineered for GATE CS Aspirants</div>
           <h1>Conquer GATE CS with <span>Unbreakable Focus.</span></h1>
           <p className={styles.quote}>"Discipline is the bridge between goals and accomplishment."</p>

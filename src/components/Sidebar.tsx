@@ -20,7 +20,10 @@ export default function Sidebar({ activeTab, setActiveTab, examDate, whitelist, 
 
   return (
     <aside className="sidebar">
-      <div className="logo">StudyShield<span>.</span></div>
+      <div className="logo" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <img src="/logo.jpg" alt="StudyShield Logo" style={{ width: "32px", height: "32px", borderRadius: "50%" }} />
+        StudyShield<span>.</span>
+      </div>
       
       <div className="countdown-widget">
         <div className="countdown-value">{calculateDaysToGATE()}</div>

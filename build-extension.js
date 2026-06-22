@@ -8,7 +8,7 @@ const outDir = "dist-ext";
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
 // Copy static assets
-const assets = ["manifest.json", "popup.html", "popup.css", "blocked.html", "blocked.css"];
+const assets = ["manifest.json", "popup.html", "popup.css", "blocked.html", "blocked.css", "logo.jpg"];
 assets.forEach(asset => {
   const src = path.join("backup/extension", asset);
   if (fs.existsSync(src)) {

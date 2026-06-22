@@ -52,6 +52,9 @@ export default function SignupPage() {
   return (
     <div className="auth-body">
       <div className="card auth-card" style={{ maxWidth: "400px", width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+          <img src="/logo.jpg" alt="StudyShield Logo" style={{ width: "80px", height: "80px", borderRadius: "50%", boxShadow: "0 0 20px rgba(245, 166, 35, 0.15)" }} />
+        </div>
         <h2 style={{ marginBottom: "1.5rem", textAlign: "center" }}>Create Account</h2>
         <form onSubmit={handleSubmit}>
           {step === 1 && (
