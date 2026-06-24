@@ -26,6 +26,10 @@ export default function DailyRevisionNotes({ sessions, onDismiss }: DailyRevisio
   sessions.forEach((s) => {
     if (!s.notes || s.notes.trim() === "") return;
     
+    // Safety check: only allow Theory, Notes, and Mock Test in the notebook
+    const act = s.activity || "";
+    if (act !== "Theory" && act !== "Notes" && act !== "Mock Test") return;
+    
     const diffTime = startOfToday - s.endTime;
     const diffDays = Math.ceil(diffTime / oneDayMs);
 

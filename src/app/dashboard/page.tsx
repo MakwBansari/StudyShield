@@ -57,6 +57,11 @@ export default function DashboardPage() {
       
       const filtered = allSessions.filter(s => {
         if (!s.notes || s.notes.trim() === "") return false;
+        
+        // Only include Theory, Notes, and Mock Test in the revision log
+        const act = s.activity || "";
+        if (act !== "Theory" && act !== "Notes" && act !== "Mock Test") return false;
+
         const diffTime = startOfToday - s.endTime;
         const diffDays = Math.ceil(diffTime / oneDayMs);
         return diffDays >= 1 && diffDays <= 3;
