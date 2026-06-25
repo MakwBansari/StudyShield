@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useTimer } from "@/hooks/useTimer";
 import { GATE_SUBJECTS } from "@/lib/subjects";
 import { StorageAPI } from "@/lib/storage";
-import { Settings } from "@/lib/types";
+import { Settings, StudySession } from "@/lib/types";
+import DailyRevisionNotes from "./DailyRevisionNotes";
 
 interface TimerProps {
   settings?: Settings;
@@ -36,9 +37,49 @@ export default function Timer({ settings }: TimerProps) {
   });
   const [activity, setActivity] = useState("Theory");
   const [topic, setTopic] = useState("");
+  const [showRevisionNotes, setShowRevisionNotes] = useState(false);
+  const [revisionNotesList, setRevisionNotesList] = useState<StudySession[]>([]);
 
   const handleStart = () => {
+    const currentSettings = StorageAPI.getSettings();
+    const today = new Date().toISOString().split("T")[0];
+    const revisionNotesShown = currentSettings.lastRevisionNotesDate === today;
+
+    if (!revisionNotesShown) {
+      const allSessions = StorageAPI.getSessions();
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      
+      const filtered = allSessions.filter(s => {
+        if (!s.notes || s.notes.trim() === "") return false;
+        const act = s.activity || "";
+        if (act !== "Theory" && act !== "Notes" && act !== "Mock Test") return false;
+
+        const diffTime = startOfToday - s.endTime;
+        const diffDays = Math.ceil(diffTime / oneDayMs);
+        return diffDays >= 1 && diffDays <= 3;
+      });
+
+      if (filtered.length > 0) {
+        setRevisionNotesList(filtered);
+        setShowRevisionNotes(true);
+        return; // Intercept start to show revision notes book first
+      }
+    }
+
+    proceedToStart();
+  };
+
+  const proceedToStart = () => {
     router.push(`/timer?subject=${encodeURIComponent(subject)}&activity=${encodeURIComponent(activity)}&topic=${encodeURIComponent(topic)}&pomodoro=${isPomodoro}`);
+  };
+
+  const handleDismissRevisionNotes = () => {
+    const today = new Date().toISOString().split("T")[0];
+    StorageAPI.saveSettings({ lastRevisionNotesDate: today });
+    setShowRevisionNotes(false);
+    proceedToStart();
   };
 
   const handlePause = () => {
@@ -200,6 +241,12 @@ export default function Timer({ settings }: TimerProps) {
           color: var(--text-muted);
         }
       `}</style>
+      {showRevisionNotes && (
+        <DailyRevisionNotes 
+          sessions={revisionNotesList}
+          onDismiss={handleDismissRevisionNotes}
+        />
+      )}
     </div>
   );
 }
