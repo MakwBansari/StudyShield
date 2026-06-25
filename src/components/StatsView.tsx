@@ -10,6 +10,36 @@ interface StatsViewProps {
 }
 
 export default function StatsView({ sessions, settings }: StatsViewProps) {
+  const calculateStreak = () => {
+    if (!sessions || sessions.length === 0) return 0;
+
+    const uniqueDates = new Set(sessions.map(s => s.date));
+    const today = new Date().toISOString().split("T")[0];
+    
+    const yesterdayDate = new Date();
+    yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+    const yesterday = yesterdayDate.toISOString().split("T")[0];
+
+    if (!uniqueDates.has(today) && !uniqueDates.has(yesterday)) {
+      return 0;
+    }
+
+    let checkDate = uniqueDates.has(today) ? new Date() : yesterdayDate;
+    let streak = 0;
+
+    while (true) {
+      const checkStr = checkDate.toISOString().split("T")[0];
+      if (uniqueDates.has(checkStr)) {
+        streak++;
+        checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  };
+
   const calculateDailyScore = () => {
     const today = new Date().toISOString().split("T")[0];
     const todaySessions = sessions.filter(s => s.date === today);
@@ -39,6 +69,7 @@ export default function StatsView({ sessions, settings }: StatsViewProps) {
   };
 
   const weeklyBySubj = getWeeklyHoursBySubject();
+  const streak = calculateStreak();
 
   return (
     <div className="stats-grid">
@@ -49,7 +80,9 @@ export default function StatsView({ sessions, settings }: StatsViewProps) {
       
       <div className="card streak-card">
         <h3>Study Streak</h3>
-        <div className="streak-display">1 Day</div>
+        <div className="streak-display">
+          {streak} {streak === 1 ? "Day" : "Days"}
+        </div>
       </div>
 
       <div className="card chart-card full-width">
