@@ -15,7 +15,6 @@ import { StorageAPI } from "@/lib/storage";
 import { Settings, StudySession } from "@/lib/types";
 
 import MorningBriefing from "@/components/MorningBriefing";
-import DailyRevisionNotes from "@/components/DailyRevisionNotes";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -24,8 +23,6 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [showBriefing, setShowBriefing] = useState(false);
-  const [showRevisionNotes, setShowRevisionNotes] = useState(false);
-  const [revisionNotesList, setRevisionNotesList] = useState<StudySession[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -47,36 +44,6 @@ export default function DashboardPage() {
     if (!briefingShown) {
       setShowBriefing(true);
     }
-
-    // Check for daily revision notes
-    const revisionNotesShown = currentSettings.lastRevisionNotesDate === today;
-    if (!revisionNotesShown) {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      
-      const filtered = allSessions.filter(s => {
-        if (!s.notes || s.notes.trim() === "") return false;
-        
-        // Only include Theory, Notes, and Mock Test in the revision log
-        const act = s.activity || "";
-        if (act !== "Theory" && act !== "Notes" && act !== "Mock Test") return false;
-
-        const diffTime = startOfToday - s.endTime;
-        const diffDays = Math.ceil(diffTime / oneDayMs);
-        return diffDays >= 1 && diffDays <= 3;
-      });
-
-      if (filtered.length > 0) {
-        setRevisionNotesList(filtered);
-        // Show after briefing is dismissed, or immediately if briefing was already shown
-        if (briefingShown) {
-          setShowRevisionNotes(true);
-        }
-      } else {
-        StorageAPI.saveSettings({ lastRevisionNotesDate: today });
-      }
-    }
   }, [router]);
 
   const handleLogout = () => {
@@ -91,18 +58,9 @@ export default function DashboardPage() {
     setSettings(prev => ({ ...prev, lastBriefingDate: today }));
     setShowBriefing(false);
     
-    if (revisionNotesList.length > 0) {
-      setShowRevisionNotes(true);
-    } else if (action === "revise") {
+    if (action === "revise") {
       setActiveTab("mindmap"); // Route to mind map for revision
     }
-  };
-
-  const handleDismissRevisionNotes = () => {
-    const today = new Date().toISOString().split("T")[0];
-    StorageAPI.saveSettings({ lastRevisionNotesDate: today });
-    setSettings(prev => ({ ...prev, lastRevisionNotesDate: today }));
-    setShowRevisionNotes(false);
   };
 
   const handleUpdateExamDate = (newDate: string) => {
@@ -122,12 +80,6 @@ export default function DashboardPage() {
           onDismiss={handleDismissBriefing}
           activeSubject={activeSubject}
           examDate={settings.examDate}
-        />
-      )}
-      {showRevisionNotes && (
-        <DailyRevisionNotes 
-          sessions={revisionNotesList}
-          onDismiss={handleDismissRevisionNotes}
         />
       )}
       <Sidebar 

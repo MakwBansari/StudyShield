@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import MotivationQuote from "./MotivationQuote";
 import Timer from "./Timer";
 import { StudySession, Settings } from "@/lib/types";
-import { GATE_SUBJECTS, getDueRevisions } from "@/lib/subjects";
+import { GATE_SUBJECTS } from "@/lib/subjects";
 
 interface DashboardViewProps {
   sessions: StudySession[];
@@ -13,7 +13,6 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ sessions, settings, userName }: DashboardViewProps) {
-  const dueRevisions = getDueRevisions(sessions);
 
   const [timeFilter, setTimeFilter] = useState("weekly");
   const [subjectFilter, setSubjectFilter] = useState("All");
@@ -81,9 +80,13 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
     
     const localNow = new Date();
     const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()).getTime();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const startOfYesterday = startOfToday - oneDayMs;
 
     if (timeFilter === "daily") {
       return sessionTime >= startOfToday;
+    } else if (timeFilter === "yesterday") {
+      return sessionTime >= startOfYesterday && sessionTime < startOfToday;
     } else if (timeFilter === "weekly") {
       const d = new Date();
       d.setDate(d.getDate() - 6);
@@ -115,6 +118,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
   const getSubjectMetrics = (subjectName: string) => {
     const localNow = new Date();
     const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
     
     const dW = new Date();
     dW.setDate(dW.getDate() - 6);
@@ -138,6 +142,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
 
     return {
       daily: getStats(subjSessions.filter(s => s.startTime >= startOfToday)),
+      yesterday: getStats(subjSessions.filter(s => s.startTime >= startOfYesterday && s.startTime < startOfToday)),
       weekly: getStats(subjSessions.filter(s => s.startTime >= startOfWeekly)),
       monthly: getStats(subjSessions.filter(s => s.startTime >= startOfMonthly)),
       yearly: getStats(subjSessions.filter(s => s.startTime >= startOfYearly)),
@@ -225,25 +230,8 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
         </div>
 
         <div className="logs-section">
-          <div className="card revision-card">
-            <h3>Due for Revision</h3>
-            <div className="revision-list">
-              {dueRevisions.length > 0 ? (
-                dueRevisions.map((r, i) => (
-                  <div key={i} className="revision-item">
-                    <div className="revision-subject">{r.subject}</div>
-                    <div className="revision-topic">Topic: {r.topic}</div>
-                    <div className="revision-meta">Studied {r.daysAgo} days ago</div>
-                  </div>
-                ))
-              ) : (
-                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No topics due for revision today. Great job!</p>
-              )}
-            </div>
-          </div>
-
           {/* Interactive Activity Log Card */}
-          <div className="card activity-log-card" style={{ marginTop: "1.5rem" }}>
+          <div className="card activity-log-card">
             <div className="card-header" style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <h3 style={{ margin: 0 }}>My Activity Log</h3>
@@ -259,6 +247,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
                     style={{ padding: "0.4rem 0.6rem", fontSize: "0.85rem", background: "var(--bg-card-hover)", border: "1px solid var(--border)", width: "100%" }}
                   >
                     <option value="daily">Daily (Today)</option>
+                    <option value="yesterday">Yesterday</option>
                     <option value="weekly">Weekly (Last 7 Days)</option>
                     <option value="monthly">Monthly (Last 30 Days)</option>
                     <option value="yearly">Yearly (Last 365 Days)</option>
