@@ -1137,3 +1137,384 @@ body {
 
 .wrong p { color: #c0392b; margin-top: 0.5rem; background: #fadbd8; padding: 0.5rem; border-radius: 4px; }
 .right p { color: #27ae60; margin-top: 0.5rem; background: #d5f5e3; padding: 0.5rem; border-radius: 4px; }
+
+/* ==========================================
+   REVISION JOURNAL / STUDY JOURNAL MODERN THEME
+   ========================================== */
+.revision-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 10, 20, 0.75);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.revision-modal {
+  position: relative;
+  background: linear-gradient(135deg, rgba(21, 26, 40, 0.98) 0%, rgba(13, 17, 28, 0.99) 100%);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 
+              0 0 40px rgba(245, 166, 35, 0.05);
+  border-radius: 20px;
+  max-width: 720px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  max-height: 700px;
+  animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(30px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.revision-header {
+  padding: 1.75rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(21, 26, 40, 0.4);
+  position: relative;
+}
+
+.revision-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.revision-badge {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.revision-header h2 {
+  font-family: var(--font-body);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.5px;
+}
+
+.revision-subtitle {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Tabs Bar */
+.revision-tabs {
+  display: flex;
+  background: rgba(10, 14, 26, 0.4);
+  padding: 0.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+}
+
+.revision-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.revision-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.revision-tab-btn.active {
+  color: #fff;
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.3);
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.05);
+}
+
+.revision-tab-btn.active .tab-count-badge {
+  background: var(--accent);
+  color: #000;
+}
+
+.tab-count-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--border);
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+/* Content Panel */
+.revision-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.revision-content-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.revision-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.revision-content-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.revision-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.revision-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.revision-note-card {
+  background: rgba(21, 26, 40, 0.4);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.revision-note-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.revision-note-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 166, 35, 0.3);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+  background: rgba(21, 26, 40, 0.6);
+}
+
+.revision-note-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.revision-note-subject {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.2px;
+}
+
+.revision-note-duration {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+}
+
+.revision-note-topic {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.revision-note-topic span {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.revision-note-topic u {
+  text-decoration: none;
+  border-bottom: 2px dashed rgba(245, 166, 35, 0.4);
+  color: var(--text-main);
+}
+
+.revision-note-body {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.formula-block {
+  font-family: var(--font-mono);
+  background: rgba(10, 14, 26, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  color: #38bdf8; /* Soft blue for code/math expressions */
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.formula-inline {
+  font-family: var(--font-mono);
+  background: rgba(10, 14, 26, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.85rem;
+  color: #38bdf8;
+}
+
+.revision-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.revision-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1.25rem;
+  filter: drop-shadow(0 0 10px rgba(245, 166, 35, 0.2));
+  animation: floatEmoji 3s ease-in-out infinite;
+}
+
+@keyframes floatEmoji {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.revision-empty-state h3 {
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-main);
+}
+
+.revision-empty-state p {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  margin: 0;
+  max-width: 300px;
+}
+
+/* Footer Section */
+.revision-footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid var(--border);
+  background: rgba(21, 26, 40, 0.4);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-revision-done {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent) 0%, #ea580c 100%);
+  color: #000;
+  font-weight: 700;
+  border: none;
+  padding: 0.95rem;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 15px rgba(245, 166, 35, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-revision-done:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.3);
+  filter: brightness(1.1);
+}
+
+.btn-revision-done:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .revision-modal {
+    height: 90vh;
+    max-height: none;
+  }
+  .revision-tabs {
+    padding: 0.5rem 1rem;
+    overflow-x: auto;
+  }
+  .revision-header {
+    padding: 1.25rem 1.5rem;
+  }
+  .revision-content-scroll {
+    padding: 1.25rem;
+  }
+  .revision-footer {
+    padding: 1.25rem 1.5rem;
+  }
+}
