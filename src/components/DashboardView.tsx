@@ -39,8 +39,8 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
   const [timelineSubject, setTimelineSubject] = useState("all");
   const [timelineTopic, setTimelineTopic] = useState("");
   const [timelineHasQuestions, setTimelineHasQuestions] = useState(false);
-  const [hoveredSession, setHoveredSession] = useState<StudySession | null>(null);
-  const [hoveredDaySummary, setHoveredDaySummary] = useState<{ date: string; hours: number; questions: number; subjects: string[] } | null>(null);
+  const [selectedSession, setSelectedSession] = useState<StudySession | null>(null);
+  const [selectedDaySummary, setSelectedDaySummary] = useState<{ date: string; hours: number; questions: number; subjects: string[] } | null>(null);
 
   const getWeeklyPerformance = () => {
     const today = new Date();
@@ -228,21 +228,28 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
         ))}
         
         {/* Active segments */}
-        {segments.map(seg => (
-          <div
-            key={seg.id}
-            className="timeline-segment"
-            style={{
-              left: `${seg.left}%`,
-              width: `${Math.max(0.8, seg.width)}%`,
-              backgroundColor: seg.color,
-              color: seg.color
-            }}
-            onMouseEnter={() => setHoveredSession(seg.session)}
-            onMouseLeave={() => setHoveredSession(null)}
-            onClick={() => setHoveredSession(seg.session)}
-          />
-        ))}
+        {segments.map(seg => {
+          const isSelected = selectedSession?.id === seg.session.id;
+          return (
+            <div
+              key={seg.id}
+              className="timeline-segment"
+              style={{
+                left: `${seg.left}%`,
+                width: `${Math.max(0.8, seg.width)}%`,
+                backgroundColor: seg.color,
+                color: seg.color,
+                boxShadow: isSelected ? "0 0 10px currentColor" : "none",
+                transform: isSelected ? "scaleY(1.15)" : "none",
+                filter: isSelected ? "brightness(1.25)" : "none"
+              }}
+              onClick={() => {
+                setSelectedSession(prev => prev?.id === seg.session.id ? null : seg.session);
+                setSelectedDaySummary(null);
+              }}
+            />
+          );
+        })}
       </div>
     );
   };
@@ -283,6 +290,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
         {last30Days.map((day, idx) => {
           const hours = day.totalMinutes / 60;
           const color = day.hasData ? getSubjectColor(day.subjects[0]) : "transparent";
+          const isSelected = selectedDaySummary?.date === day.dateLabel;
 
           return (
             <div
@@ -290,19 +298,24 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               className="timeline-block-item"
               style={{
                 backgroundColor: day.hasData ? `${color}22` : "rgba(255, 255, 255, 0.02)",
-                borderColor: day.hasData ? color : "var(--border)"
+                borderColor: isSelected ? "var(--accent)" : (day.hasData ? color : "var(--border)"),
+                transform: isSelected ? "translateY(-2px)" : "none",
+                boxShadow: isSelected ? "0 4px 10px rgba(245, 166, 35, 0.25)" : "none"
               }}
-              onMouseEnter={() => setHoveredDaySummary({
-                date: day.dateLabel,
-                hours,
-                questions: day.totalQuestions,
-                subjects: day.subjects
-              })}
-              onMouseLeave={() => setHoveredDaySummary(null)}
+              onClick={() => {
+                const summary = {
+                  date: day.dateLabel,
+                  hours,
+                  questions: day.totalQuestions,
+                  subjects: day.subjects
+                };
+                setSelectedDaySummary(prev => prev?.date === summary.date ? null : summary);
+                setSelectedSession(null);
+              }}
             >
               <span 
                 className="timeline-block-label"
-                style={day.hasData ? { color: "#fff" } : {}}
+                style={(day.hasData || isSelected) ? { color: "#fff" } : {}}
               >
                 {day.dateLabel.split(" ")[1]}
               </span>
@@ -341,6 +354,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
         {last12Months.map((m, idx) => {
           const hours = m.totalMinutes / 60;
           const color = m.hasData ? getSubjectColor(m.subjects[0]) : "transparent";
+          const isSelected = selectedDaySummary?.date === m.label;
 
           return (
             <div
@@ -348,20 +362,25 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               className="timeline-block-item"
               style={{
                 backgroundColor: m.hasData ? `${color}22` : "rgba(255, 255, 255, 0.02)",
-                borderColor: m.hasData ? color : "var(--border)",
-                height: "36px"
+                borderColor: isSelected ? "var(--accent)" : (m.hasData ? color : "var(--border)"),
+                height: "36px",
+                transform: isSelected ? "translateY(-2px)" : "none",
+                boxShadow: isSelected ? "0 4px 10px rgba(245, 166, 35, 0.25)" : "none"
               }}
-              onMouseEnter={() => setHoveredDaySummary({
-                date: m.label,
-                hours,
-                questions: m.totalQuestions,
-                subjects: m.subjects
-              })}
-              onMouseLeave={() => setHoveredDaySummary(null)}
+              onClick={() => {
+                const summary = {
+                  date: m.label,
+                  hours,
+                  questions: m.totalQuestions,
+                  subjects: m.subjects
+                };
+                setSelectedDaySummary(prev => prev?.date === summary.date ? null : summary);
+                setSelectedSession(null);
+              }}
             >
               <span 
                 className="timeline-block-label"
-                style={{ fontSize: "0.75rem", color: m.hasData ? "#fff" : "var(--text-muted)" }}
+                style={{ fontSize: "0.75rem", color: (m.hasData || isSelected) ? "#fff" : "var(--text-muted)" }}
               >
                 {m.label}
               </span>
@@ -618,11 +637,11 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               Study Session Timeline
             </h3>
             
-            <div className="timeline-filters-grid">
+            <div className="timeline-filters-row">
               <div className="timeline-filter-group">
                 <label>Timeframe</label>
                 <select
-                  className="timeline-input"
+                  className="timeline-input timeline-select-timeframe"
                   value={timelineTimeframe}
                   onChange={(e) => setTimelineTimeframe(e.target.value as any)}
                 >
@@ -637,7 +656,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               <div className="timeline-filter-group">
                 <label>Subject</label>
                 <select
-                  className="timeline-input"
+                  className="timeline-input timeline-select-subject"
                   value={timelineSubject}
                   onChange={(e) => setTimelineSubject(e.target.value)}
                 >
@@ -648,28 +667,27 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
                 </select>
               </div>
 
-              <div className="timeline-filter-group" style={{ gridColumn: "span 2" }}>
+              <div className="timeline-filter-group" style={{ flex: 1, minWidth: "120px" }}>
                 <label>Topic</label>
                 <input
                   type="text"
                   className="timeline-input"
+                  style={{ width: "100%" }}
                   placeholder="Filter topic notes..."
                   value={timelineTopic}
                   onChange={(e) => setTimelineTopic(e.target.value)}
                 />
               </div>
 
-              <div style={{ gridColumn: "span 2" }}>
-                <label className="timeline-checkbox-label">
-                  <input
-                    type="checkbox"
-                    className="timeline-checkbox"
-                    checked={timelineHasQuestions}
-                    onChange={(e) => setTimelineHasQuestions(e.target.checked)}
-                  />
-                  With Questions Solved
-                </label>
-              </div>
+              <label className="timeline-checkbox-label">
+                <input
+                  type="checkbox"
+                  className="timeline-checkbox"
+                  checked={timelineHasQuestions}
+                  onChange={(e) => setTimelineHasQuestions(e.target.checked)}
+                />
+                With Questions
+              </label>
             </div>
 
             {/* Timeline Visualization */}
@@ -677,55 +695,55 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               {renderTimelineGraph()}
             </div>
 
-            {/* Interactive details box */}
+            {/* Interactive details box (toggled by click instead of hover) */}
             <div className="timeline-details-panel">
-              {hoveredSession ? (
+              {selectedSession ? (
                 <div className="timeline-details-grid">
                   <div className="timeline-details-header">
-                    <span className="timeline-details-subj"># {hoveredSession.subject}</span>
+                    <span className="timeline-details-subj"># {selectedSession.subject}</span>
                     <span className="timeline-details-time">
-                      {new Date(hoveredSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(hoveredSession.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(selectedSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedSession.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                    {hoveredSession.topic && (
+                    {selectedSession.topic && (
                       <p style={{ margin: '0 0 0.3rem 0' }}>
-                        <strong>Topic:</strong> {hoveredSession.topic}
+                        <strong>Topic:</strong> {selectedSession.topic}
                       </p>
                     )}
                     <p style={{ margin: '0 0 0.3rem 0' }}>
-                      <strong>Duration:</strong> {hoveredSession.durationMinutes}m ({hoveredSession.activity})
+                      <strong>Duration:</strong> {selectedSession.durationMinutes}m ({selectedSession.activity})
                     </p>
-                    {(hoveredSession.questionsSolved !== undefined || hoveredSession.unsolvedQuestions !== undefined) && (
+                    {(selectedSession.questionsSolved !== undefined || selectedSession.unsolvedQuestions !== undefined) && (
                       <p style={{ margin: '0 0 0.3rem 0' }}>
-                        <strong>Questions:</strong> {hoveredSession.questionsSolved || 0} solved, {hoveredSession.unsolvedQuestions || 0} incorrect
+                        <strong>Questions:</strong> {selectedSession.questionsSolved || 0} solved, {selectedSession.unsolvedQuestions || 0} incorrect
                       </p>
                     )}
-                    {hoveredSession.notes && (
+                    {selectedSession.notes && (
                       <p style={{ margin: '0.3rem 0 0 0', fontStyle: 'italic', fontSize: '0.8rem', borderLeft: '2px solid var(--border)', paddingLeft: '0.4rem', color: 'var(--text-muted)' }}>
-                        "{hoveredSession.notes}"
+                        "{selectedSession.notes}"
                       </p>
                     )}
                   </div>
                 </div>
-              ) : hoveredDaySummary ? (
+              ) : selectedDaySummary ? (
                 <div className="timeline-details-grid">
                   <div className="timeline-details-header">
-                    <span className="timeline-details-subj" style={{ color: 'var(--accent)' }}>{hoveredDaySummary.date}</span>
-                    <span className="timeline-details-time">{hoveredDaySummary.hours.toFixed(1)}h studied</span>
+                    <span className="timeline-details-subj" style={{ color: 'var(--accent)' }}>{selectedDaySummary.date}</span>
+                    <span className="timeline-details-time">{selectedDaySummary.hours.toFixed(1)}h studied</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
                     <p style={{ margin: '0 0 0.3rem 0' }}>
-                      <strong>Questions Solved:</strong> {hoveredDaySummary.questions} Qs
+                      <strong>Questions Solved:</strong> {selectedDaySummary.questions} Qs
                     </p>
                     <p style={{ margin: '0' }}>
-                      <strong>Subjects:</strong> {hoveredDaySummary.subjects.join(', ') || 'None'}
+                      <strong>Subjects:</strong> {selectedDaySummary.subjects.join(', ') || 'None'}
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="timeline-details-empty">
-                  Hover over a segment or block to view logs.
+                  Click a colored timeline segment or grid block to view detailed logs here.
                 </div>
               )}
             </div>
