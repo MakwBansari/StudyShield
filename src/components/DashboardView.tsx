@@ -14,17 +14,17 @@ interface DashboardViewProps {
 
 const getSubjectColor = (subjectName: string) => {
   const colors: Record<string, string> = {
-    "Engineering Mathematics": "#ec4899", // pink
-    "Discrete Mathematics": "#d946ef", // magenta
-    "Digital Logic": "#3b82f6", // blue
-    "Computer Organization & Architecture": "#a855f7", // purple
+    "Engineering Mathematics": "#eab308", // warm yellow
+    "Discrete Mathematics": "#fbbf24", // warm amber-yellow
+    "Digital Logic": "#ca8a04", // gold-yellow
+    "Computer Organization & Architecture": "#f5a623", // accent amber
     "Programming & Data Structures": "#10b981", // emerald
     "Algorithms": "#06b6d4", // cyan
     "Theory of Computation": "#f59e0b", // amber
     "Compiler Design": "#f97316", // orange
     "Operating Systems": "#0d9488", // teal
     "Databases": "#84cc16", // lime
-    "Computer Networks": "#6366f1", // indigo
+    "Computer Networks": "#d97706", // dark amber
     "General Aptitude": "#14b8a6", // teal/cyan
   };
   return colors[subjectName] || "#f5a623"; // default amber
