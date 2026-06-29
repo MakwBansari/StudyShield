@@ -100,7 +100,13 @@ function TimerPageContent() {
     setActivity(act);
     setTopic(top);
     setIsPomodoro(pomo);
-    setActiveStartTime(Date.now());
+    
+    const now = Date.now();
+    setActiveStartTime(now);
+
+    // Save start info to localStorage for real-time session logging
+    localStorage.setItem("current_session_start_time", now.toString());
+    localStorage.setItem("current_session_intervals", JSON.stringify([{ start: now, end: now }]));
 
     // Load cheatsheet
     const settings = StorageAPI.getSettings();
@@ -110,8 +116,8 @@ function TimerPageContent() {
     }
 
     setIsActive(true);
-    setLastStart(Date.now());
-    StorageAPI.setExtensionStudying(true, sub, Date.now());
+    setLastStart(now);
+    StorageAPI.setExtensionStudying(true, sub, now);
   }, [searchParams]);
 
   useEffect(() => {
@@ -468,22 +474,68 @@ function TimerPageContent() {
   };
 
   const handlePauseResume = () => {
+    const now = Date.now();
     if (isActive) {
       if (lastStart !== null) {
-        setAccumulated(prev => prev + Math.floor((Date.now() - lastStart) / 1000));
+        setAccumulated(prev => prev + Math.floor((now - lastStart) / 1000));
+        
+        // Save pause to localStorage intervals
+        const stored = localStorage.getItem("current_session_intervals");
+        if (stored) {
+          try {
+            const arr = JSON.parse(stored);
+            if (arr.length > 0) {
+              arr[arr.length - 1].end = now;
+              localStorage.setItem("current_session_intervals", JSON.stringify(arr));
+            }
+          } catch (e) {
+            console.error("Error parsing stored intervals:", e);
+          }
+        }
       }
       setLastStart(null);
     } else {
-      setLastStart(Date.now());
+      setLastStart(now);
+      
+      // Save resume to localStorage intervals (starts new interval)
+      const stored = localStorage.getItem("current_session_intervals");
+      if (stored) {
+        try {
+          const arr = JSON.parse(stored);
+          arr.push({ start: now, end: now });
+          localStorage.setItem("current_session_intervals", JSON.stringify(arr));
+        } catch (e) {
+          console.error("Error parsing stored intervals:", e);
+        }
+      } else {
+        localStorage.setItem("current_session_intervals", JSON.stringify([{ start: now, end: now }]));
+      }
     }
     const newActive = !isActive;
     setIsActive(newActive);
-    StorageAPI.setExtensionStudying(newActive, subject, Date.now());
+    StorageAPI.setExtensionStudying(newActive, subject, now);
   };
 
   const handleStop = () => {
     setIsActive(false);
     StorageAPI.setExtensionStudying(false);
+
+    const now = Date.now();
+    // Update the final interval end time if active
+    if (lastStart !== null) {
+      const stored = localStorage.getItem("current_session_intervals");
+      if (stored) {
+        try {
+          const arr = JSON.parse(stored);
+          if (arr.length > 0) {
+            arr[arr.length - 1].end = now;
+            localStorage.setItem("current_session_intervals", JSON.stringify(arr));
+          }
+        } catch (e) {
+          console.error("Error saving final interval:", e);
+        }
+      }
+    }
 
     const durationMins = Math.max(1, Math.floor(seconds / 60));
     router.push(`/timer/complete?subject=${encodeURIComponent(subject)}&activity=${encodeURIComponent(activity)}&topic=${encodeURIComponent(topic)}&duration=${durationMins}`);

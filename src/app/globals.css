@@ -1518,3 +1518,272 @@ body {
     padding: 1.25rem 1.5rem;
   }
 }
+
+/* ==========================================
+   STUDY ACTIVITY TIMELINE STYLE SYSTEM
+   ========================================== */
+.timeline-card {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.timeline-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.25rem;
+}
+
+.timeline-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.timeline-filter-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.timeline-input {
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  min-width: 150px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.timeline-input:focus {
+  border-color: var(--accent);
+}
+
+.timeline-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  cursor: pointer;
+  margin-top: 1.1rem;
+}
+
+.timeline-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* 24-Hour Timeline Bar Grid */
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.timeline-day-title {
+  width: 80px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.timeline-bar-container-outer {
+  flex: 1;
+  position: relative;
+}
+
+.timeline-bar-track {
+  position: relative;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.timeline-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.timeline-segment {
+  position: absolute;
+  height: 80%;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  top: 10%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.timeline-segment:hover {
+  transform: scaleY(1.15);
+  box-shadow: 0 0 12px currentColor;
+  filter: brightness(1.25);
+  z-index: 10;
+}
+
+/* Time axis labels */
+.timeline-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  padding-left: 92.5px; /* Matches row gap + label width */
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Aggregated Block Grids */
+.timeline-blocks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0.5rem 0;
+}
+
+.timeline-block-item {
+  flex: 1;
+  min-width: 20px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timeline-block-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.15);
+  z-index: 5;
+}
+
+.timeline-block-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.timeline-block-item:hover .timeline-block-label {
+  color: #fff;
+}
+
+/* Hover Details Panel */
+.timeline-details-panel {
+  margin-top: 1.5rem;
+  background: rgba(21, 26, 40, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.timeline-details-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.timeline-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timeline-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-details-subj {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.timeline-details-time {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg-card-hover);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .timeline-filters-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .timeline-input {
+    width: 100%;
+  }
+
+  .timeline-checkbox-label {
+    margin-top: 0.25rem;
+  }
+
+  .timeline-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .timeline-day-title {
+    width: 100%;
+    text-align: left;
+  }
+
+  .timeline-axis-labels {
+    padding-left: 0;
+  }
+}

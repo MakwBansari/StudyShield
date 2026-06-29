@@ -12,6 +12,7 @@ export interface StudySession {
   source?: string;
   unsolvedDoubts?: string;
   notes?: string;
+  intervals?: { start: number; end: number }[];
 }
 
 export interface ExtensionEscape {

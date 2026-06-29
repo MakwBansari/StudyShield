@@ -43,12 +43,29 @@ function TimerCompletePageContent() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Retrieve timeline details from localStorage
+    let exactStartTime = Date.now() - duration * 60 * 1000;
+    const storedStart = localStorage.getItem("current_session_start_time");
+    if (storedStart) {
+      exactStartTime = parseInt(storedStart, 10);
+    }
+
+    let intervals: { start: number; end: number }[] = [];
+    const storedIntervals = localStorage.getItem("current_session_intervals");
+    if (storedIntervals) {
+      try {
+        intervals = JSON.parse(storedIntervals);
+      } catch (err) {
+        console.error("Error parsing stored intervals:", err);
+      }
+    }
+
     const session: StudySession = {
       id: crypto.randomUUID(),
       subject,
       activity,
       topic: topic || undefined,
-      startTime: Date.now() - duration * 60 * 1000,
+      startTime: exactStartTime,
       endTime: Date.now(),
       durationMinutes: duration,
       date: new Date().toISOString().split("T")[0],
@@ -57,9 +74,14 @@ function TimerCompletePageContent() {
       source,
       unsolvedDoubts: unsolvedDoubts || undefined,
       notes: notes || undefined,
+      intervals: intervals.length > 0 ? intervals : undefined,
     };
 
     StorageAPI.saveSession(session);
+
+    // Clean up temporary session storage
+    localStorage.removeItem("current_session_start_time");
+    localStorage.removeItem("current_session_intervals");
 
     if (isRevision) {
       const currentSettings = StorageAPI.getSettings();

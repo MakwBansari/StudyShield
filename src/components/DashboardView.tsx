@@ -12,10 +12,35 @@ interface DashboardViewProps {
   userName?: string;
 }
 
-export default function DashboardView({ sessions, settings, userName }: DashboardViewProps) {
+const getSubjectColor = (subjectName: string) => {
+  const colors: Record<string, string> = {
+    "Engineering Mathematics": "#ec4899", // pink
+    "Discrete Mathematics": "#d946ef", // magenta
+    "Digital Logic": "#3b82f6", // blue
+    "Computer Organization & Architecture": "#a855f7", // purple
+    "Programming & Data Structures": "#10b981", // emerald
+    "Algorithms": "#06b6d4", // cyan
+    "Theory of Computation": "#f59e0b", // amber
+    "Compiler Design": "#f97316", // orange
+    "Operating Systems": "#0d9488", // teal
+    "Databases": "#84cc16", // lime
+    "Computer Networks": "#6366f1", // indigo
+    "General Aptitude": "#14b8a6", // teal/cyan
+  };
+  return colors[subjectName] || "#f5a623"; // default amber
+};
 
+export default function DashboardView({ sessions, settings, userName }: DashboardViewProps) {
   const [timeFilter, setTimeFilter] = useState("weekly");
   const [subjectFilter, setSubjectFilter] = useState("All");
+
+  // Timeline-specific filter states
+  const [timelineTimeframe, setTimelineTimeframe] = useState<"today" | "yesterday" | "weekly" | "monthly" | "yearly">("today");
+  const [timelineSubject, setTimelineSubject] = useState("all");
+  const [timelineTopic, setTimelineTopic] = useState("");
+  const [timelineHasQuestions, setTimelineHasQuestions] = useState(false);
+  const [hoveredSession, setHoveredSession] = useState<StudySession | null>(null);
+  const [hoveredDaySummary, setHoveredDaySummary] = useState<{ date: string; hours: number; questions: number; subjects: string[] } | null>(null);
 
   const getWeeklyPerformance = () => {
     const today = new Date();
@@ -67,17 +92,13 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
   const totalWeeklyHours = weeklyPerf.reduce((acc, d) => acc + d.hours, 0);
   const totalWeeklyQuestions = weeklyPerf.reduce((acc, d) => acc + d.questions, 0);
 
-  // Filtered sessions logic
+  // Filtered sessions logic for standard Activity Log
   const filteredSessions = sessions.filter(s => {
-    // Subject filter
     if (subjectFilter !== "All" && s.subject !== subjectFilter) {
       return false;
     }
 
-    // Time filter
-    const now = Date.now();
     const sessionTime = s.startTime;
-    
     const localNow = new Date();
     const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()).getTime();
     const oneDayMs = 24 * 60 * 60 * 1000;
@@ -103,7 +124,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
       const startOfYearly = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
       return sessionTime >= startOfYearly;
     } else if (timeFilter === "upto_today") {
-      return true; // All time
+      return true;
     }
     
     return true;
@@ -114,40 +135,317 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
   const totalQs = filteredSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
   const sessionCount = filteredSessions.length;
 
-  // Subject-wise metrics logic
-  const getSubjectMetrics = (subjectName: string) => {
-    const localNow = new Date();
-    const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()).getTime();
-    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+  // Filtered sessions logic for interactive timeline
+  const getTimelineFilteredSessions = () => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const oneDayMs = 24 * 60 * 60 * 1000;
     
-    const dW = new Date();
-    dW.setDate(dW.getDate() - 6);
-    const startOfWeekly = new Date(dW.getFullYear(), dW.getMonth(), dW.getDate()).getTime();
-    
-    const dM = new Date();
-    dM.setDate(dM.getDate() - 29);
-    const startOfMonthly = new Date(dM.getFullYear(), dM.getMonth(), dM.getDate()).getTime();
-    
-    const dY = new Date();
-    dY.setDate(dY.getDate() - 364);
-    const startOfYearly = new Date(dY.getFullYear(), dY.getMonth(), dY.getDate()).getTime();
+    return sessions.filter(s => {
+      // 1. Timeframe filter
+      if (timelineTimeframe === "today") {
+        if (s.endTime < startOfToday) return false;
+      } else if (timelineTimeframe === "yesterday") {
+        const startOfYesterday = startOfToday - oneDayMs;
+        if (s.endTime < startOfYesterday || s.startTime >= startOfToday) return false;
+      } else if (timelineTimeframe === "weekly") {
+        const startOfWeekly = startOfToday - 7 * oneDayMs;
+        if (s.endTime < startOfWeekly) return false;
+      } else if (timelineTimeframe === "monthly") {
+        const startOfMonthly = startOfToday - 30 * oneDayMs;
+        if (s.endTime < startOfMonthly) return false;
+      } else if (timelineTimeframe === "yearly") {
+        const startOfYearly = startOfToday - 365 * oneDayMs;
+        if (s.endTime < startOfYearly) return false;
+      }
 
-    const subjSessions = sessions.filter(s => s.subject === subjectName);
+      // 2. Subject filter
+      if (timelineSubject !== "all" && s.subject !== timelineSubject) return false;
 
-    const getStats = (list: typeof sessions) => {
-      const mins = list.reduce((acc, s) => acc + s.durationMinutes, 0);
-      const qs = list.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
-      return { hours: mins / 60, questions: qs };
-    };
+      // 3. Topic filter
+      if (timelineTopic.trim() !== "") {
+        if (!s.topic || !s.topic.toLowerCase().includes(timelineTopic.toLowerCase())) return false;
+      }
 
-    return {
-      daily: getStats(subjSessions.filter(s => s.startTime >= startOfToday)),
-      yesterday: getStats(subjSessions.filter(s => s.startTime >= startOfYesterday && s.startTime < startOfToday)),
-      weekly: getStats(subjSessions.filter(s => s.startTime >= startOfWeekly)),
-      monthly: getStats(subjSessions.filter(s => s.startTime >= startOfMonthly)),
-      yearly: getStats(subjSessions.filter(s => s.startTime >= startOfYearly)),
-      total: getStats(subjSessions)
-    };
+      // 4. Questions filter
+      if (timelineHasQuestions) {
+        if (!s.questionsSolved || s.questionsSolved <= 0) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const timelineFiltered = getTimelineFilteredSessions();
+
+  // Helper to render the 24h timeline bar for a single day
+  const render24HourBar = (dayStart: number, daySessions: StudySession[]) => {
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+    const segments: {
+      id: string;
+      left: number;
+      width: number;
+      color: string;
+      session: StudySession;
+      intervalStart: number;
+      intervalEnd: number;
+    }[] = [];
+
+    daySessions.forEach(session => {
+      const list = session.intervals && session.intervals.length > 0
+        ? session.intervals
+        : [{ start: session.startTime, end: session.endTime }];
+
+      list.forEach((interval, idx) => {
+        const start = Math.max(dayStart, interval.start);
+        const end = Math.min(dayEnd, interval.end);
+        
+        if (start < end) {
+          const left = ((start - dayStart) / (24 * 60 * 60 * 1000)) * 100;
+          const width = ((end - start) / (24 * 60 * 60 * 1000)) * 100;
+          
+          segments.push({
+            id: `${session.id}-${idx}`,
+            left,
+            width,
+            color: getSubjectColor(session.subject),
+            session,
+            intervalStart: start,
+            intervalEnd: end
+          });
+        }
+      });
+    });
+
+    return (
+      <div className="timeline-bar-track">
+        {/* 3-hour grid lines */}
+        {[...Array(8)].map((_, i) => (
+          <div 
+            key={i} 
+            className="timeline-grid-line" 
+            style={{ left: `${(i + 1) * 12.5}%` }} 
+          />
+        ))}
+        
+        {/* Active segments */}
+        {segments.map(seg => (
+          <div
+            key={seg.id}
+            className="timeline-segment"
+            style={{
+              left: `${seg.left}%`,
+              width: `${Math.max(0.6, seg.width)}%`,
+              backgroundColor: seg.color,
+              color: seg.color
+            }}
+            onMouseEnter={() => setHoveredSession(seg.session)}
+            onMouseLeave={() => setHoveredSession(null)}
+            onClick={() => setHoveredSession(seg.session)}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderTimeAxisLabels = () => (
+    <div className="timeline-axis-labels">
+      <span>12 AM</span>
+      <span>3 AM</span>
+      <span>6 AM</span>
+      <span>9 AM</span>
+      <span>12 PM</span>
+      <span>3 PM</span>
+      <span>6 PM</span>
+      <span>9 PM</span>
+      <span>12 AM</span>
+    </div>
+  );
+
+  const renderMonthlyGrid = (filtered: StudySession[]) => {
+    const last30Days = [...Array(30)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+      
+      const daySessions = filtered.filter(s => s.startTime < dayEnd && s.endTime > dayStart);
+      const totalMinutes = daySessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+      const totalQuestions = daySessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+      const subjects = Array.from(new Set(daySessions.map(s => s.subject)));
+
+      return {
+        dateLabel: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        totalMinutes,
+        totalQuestions,
+        subjects,
+        hasData: daySessions.length > 0
+      };
+    });
+
+    return (
+      <div className="timeline-blocks-row">
+        {last30Days.map((day, idx) => {
+          const hours = day.totalMinutes / 60;
+          const color = day.hasData ? getSubjectColor(day.subjects[0]) : "transparent";
+
+          return (
+            <div
+              key={idx}
+              className="timeline-block-item"
+              style={{
+                backgroundColor: day.hasData ? `${color}22` : "rgba(255, 255, 255, 0.02)",
+                borderColor: day.hasData ? color : "var(--border)"
+              }}
+              onMouseEnter={() => setHoveredDaySummary({
+                date: day.dateLabel,
+                hours,
+                questions: day.totalQuestions,
+                subjects: day.subjects
+              })}
+              onMouseLeave={() => setHoveredDaySummary(null)}
+            >
+              <span 
+                className="timeline-block-label"
+                style={day.hasData ? { color: "#fff" } : {}}
+              >
+                {day.dateLabel.split(" ")[1]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderYearlyGrid = (filtered: StudySession[]) => {
+    const last12Months = [...Array(12)].map((_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (11 - i));
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const monthStart = new Date(year, month, 1).getTime();
+      const monthEnd = new Date(year, month + 1, 1).getTime();
+
+      const monthSessions = filtered.filter(s => s.startTime < monthEnd && s.endTime > monthStart);
+      const totalMinutes = monthSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+      const totalQuestions = monthSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
+      const subjects = Array.from(new Set(monthSessions.map(s => s.subject)));
+
+      return {
+        label: d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+        totalMinutes,
+        totalQuestions,
+        subjects,
+        hasData: monthSessions.length > 0
+      };
+    });
+
+    return (
+      <div className="timeline-blocks-row">
+        {last12Months.map((m, idx) => {
+          const hours = m.totalMinutes / 60;
+          const color = m.hasData ? getSubjectColor(m.subjects[0]) : "transparent";
+
+          return (
+            <div
+              key={idx}
+              className="timeline-block-item"
+              style={{
+                backgroundColor: m.hasData ? `${color}22` : "rgba(255, 255, 255, 0.02)",
+                borderColor: m.hasData ? color : "var(--border)",
+                height: "44px"
+              }}
+              onMouseEnter={() => setHoveredDaySummary({
+                date: m.label,
+                hours,
+                questions: m.totalQuestions,
+                subjects: m.subjects
+              })}
+              onMouseLeave={() => setHoveredDaySummary(null)}
+            >
+              <span 
+                className="timeline-block-label"
+                style={{ fontSize: "0.8rem", color: m.hasData ? "#fff" : "var(--text-muted)" }}
+              >
+                {m.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderTimelineGraph = () => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+
+    if (timelineTimeframe === "today") {
+      return (
+        <div className="timeline-list">
+          <div className="timeline-row">
+            <div className="timeline-day-title">Today</div>
+            <div className="timeline-bar-container-outer">
+              {render24HourBar(startOfToday, timelineFiltered)}
+            </div>
+          </div>
+          {renderTimeAxisLabels()}
+        </div>
+      );
+    }
+
+    if (timelineTimeframe === "yesterday") {
+      const startOfYesterday = startOfToday - oneDayMs;
+      return (
+        <div className="timeline-list">
+          <div className="timeline-row">
+            <div className="timeline-day-title">Yesterday</div>
+            <div className="timeline-bar-container-outer">
+              {render24HourBar(startOfYesterday, timelineFiltered)}
+            </div>
+          </div>
+          {renderTimeAxisLabels()}
+        </div>
+      );
+    }
+
+    if (timelineTimeframe === "weekly") {
+      const days = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const dayEnd = dayStart + oneDayMs;
+        const daySessions = timelineFiltered.filter(s => s.startTime < dayEnd && s.endTime > dayStart);
+        const label = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
+        return { dayStart, label, sessions: daySessions };
+      });
+
+      return (
+        <div className="timeline-list">
+          {days.map((day, idx) => (
+            <div key={idx} className="timeline-row">
+              <div className="timeline-day-title">{day.label}</div>
+              <div className="timeline-bar-container-outer">
+                {render24HourBar(day.dayStart, day.sessions)}
+              </div>
+            </div>
+          ))}
+          {renderTimeAxisLabels()}
+        </div>
+      );
+    }
+
+    if (timelineTimeframe === "monthly") {
+      return renderMonthlyGrid(timelineFiltered);
+    }
+
+    if (timelineTimeframe === "yearly") {
+      return renderYearlyGrid(timelineFiltered);
+    }
+
+    return null;
   };
 
   return (
@@ -189,8 +487,120 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
         </div>
       </div>
 
+      {/* Interactive Activity Timeline Card */}
+      <div className="timeline-card full-width">
+        <div className="timeline-filters-row">
+          <div className="timeline-filter-group">
+            <label>Timeframe</label>
+            <select
+              className="timeline-input"
+              value={timelineTimeframe}
+              onChange={(e) => setTimelineTimeframe(e.target.value as any)}
+            >
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
 
-      
+          <div className="timeline-filter-group">
+            <label>Subject</label>
+            <select
+              className="timeline-input"
+              value={timelineSubject}
+              onChange={(e) => setTimelineSubject(e.target.value)}
+            >
+              <option value="all">All Subjects</option>
+              {GATE_SUBJECTS.map(s => (
+                <option key={s.name} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="timeline-filter-group" style={{ flex: 1, minWidth: "160px" }}>
+            <label>Topic</label>
+            <input
+              type="text"
+              className="timeline-input"
+              style={{ width: "100%" }}
+              placeholder="Search topic notes..."
+              value={timelineTopic}
+              onChange={(e) => setTimelineTopic(e.target.value)}
+            />
+          </div>
+
+          <label className="timeline-checkbox-label">
+            <input
+              type="checkbox"
+              className="timeline-checkbox"
+              checked={timelineHasQuestions}
+              onChange={(e) => setTimelineHasQuestions(e.target.checked)}
+            />
+            With Questions Solved
+          </label>
+        </div>
+
+        {/* Timeline Visualization */}
+        <div style={{ padding: "0.5rem 0" }}>
+          {renderTimelineGraph()}
+        </div>
+
+        {/* Interactive details box */}
+        <div className="timeline-details-panel">
+          {hoveredSession ? (
+            <div className="timeline-details-grid">
+              <div className="timeline-details-header">
+                <span className="timeline-details-subj"># {hoveredSession.subject}</span>
+                <span className="timeline-details-time">
+                  {new Date(hoveredSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(hoveredSession.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                {hoveredSession.topic && (
+                  <p style={{ margin: '0 0 0.4rem 0' }}>
+                    <strong>Topic:</strong> {hoveredSession.topic}
+                  </p>
+                )}
+                <p style={{ margin: '0 0 0.4rem 0' }}>
+                  <strong>Duration:</strong> {hoveredSession.durationMinutes} minutes ({hoveredSession.activity})
+                </p>
+                {(hoveredSession.questionsSolved !== undefined || hoveredSession.unsolvedQuestions !== undefined) && (
+                  <p style={{ margin: '0 0 0.4rem 0' }}>
+                    <strong>Questions:</strong> {hoveredSession.questionsSolved || 0} solved, {hoveredSession.unsolvedQuestions || 0} incorrect
+                  </p>
+                )}
+                {hoveredSession.notes && (
+                  <p style={{ margin: '0.4rem 0 0 0', fontStyle: 'italic', fontSize: '0.85rem', borderLeft: '2px solid var(--border)', paddingLeft: '0.5rem', color: 'var(--text-muted)' }}>
+                    "{hoveredSession.notes}"
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : hoveredDaySummary ? (
+            <div className="timeline-details-grid">
+              <div className="timeline-details-header">
+                <span className="timeline-details-subj" style={{ color: 'var(--accent)' }}>{hoveredDaySummary.date}</span>
+                <span className="timeline-details-time">{hoveredDaySummary.hours.toFixed(1)} hours studied</span>
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                <p style={{ margin: '0 0 0.4rem 0' }}>
+                  <strong>Questions Solved:</strong> {hoveredDaySummary.questions} Qs
+                </p>
+                <p style={{ margin: '0' }}>
+                  <strong>Subjects Studied:</strong> {hoveredDaySummary.subjects.join(', ') || 'None'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="timeline-details-empty">
+              Hover over a colored timeline segment or block to view detailed activity logs.
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="dashboard-grid">
         <div className="timer-section">
           <Timer settings={settings} />
@@ -307,7 +717,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
                       </div>
                     )}
                     {s.questionsSolved !== undefined && s.questionsSolved > 0 && (
-                      <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "0.2rem", fontWeight: 500 }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "0.2" + "rem", fontWeight: 500 }}>
                         ✓ Solved {s.questionsSolved} questions
                       </div>
                     )}
