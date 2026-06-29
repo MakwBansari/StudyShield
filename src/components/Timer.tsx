@@ -53,12 +53,16 @@ export default function Timer({ settings }: TimerProps) {
       
       const filtered = allSessions.filter(s => {
         if (!s.notes || s.notes.trim() === "") return false;
-        const act = s.activity || "";
-        if (act !== "Theory" && act !== "Notes" && act !== "Mock Test") return false;
-
+        
         const diffTime = startOfToday - s.endTime;
-        const diffDays = Math.ceil(diffTime / oneDayMs);
-        return diffDays >= 1 && diffDays <= 3;
+        let diffDays = 0;
+        if (diffTime > 0) {
+          diffDays = Math.ceil(diffTime / oneDayMs);
+        } else {
+          diffDays = 0; // Today
+        }
+        
+        return diffDays >= 0;
       });
 
       if (filtered.length > 0) {

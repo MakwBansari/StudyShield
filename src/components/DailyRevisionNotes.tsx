@@ -12,56 +12,122 @@ interface DailyRevisionNotesProps {
 function formatNoteContent(text: string) {
   if (!text) return null;
 
-  // Split the notes by "CASE X" markers to separate them into distinct sections
-  const parts = text.split(/(?=CASE \d+)/i);
+  // If text is single-line but contains CASE X, pre-process to add newlines for easier reading
+  let processedText = text;
+  if (!text.includes("\n") && /case \d+/i.test(text)) {
+    processedText = text.replace(/(case \d+)/gi, "\n$1");
+  }
 
-  return parts.map((part, index) => {
-    const trimmed = part.trim();
-    if (!trimmed) return null;
+  const lines = processedText.split(/\r?\n/);
+  const elements: React.ReactNode[] = [];
+  let currentListItems: string[] = [];
 
-    // Search for "Speed up =" or general equations containing "=" with spaces to format as formula blocks
-    const speedUpIndex = trimmed.toLowerCase().indexOf("speed up =");
-    const equalsIndex = speedUpIndex !== -1 ? speedUpIndex : trimmed.indexOf(" = ");
+  const flushList = (key: string | number) => {
+    if (currentListItems.length > 0) {
+      elements.push(
+        <ul key={`list-${key}`} className="revision-bullet-list" style={{ margin: "0.5rem 0 0.75rem 1.5rem", listStyleType: "disc" }}>
+          {currentListItems.map((item, idx) => {
+            const hasFormula = item.includes(" = ") || item.toLowerCase().includes("speed up =");
+            return (
+              <li key={idx} style={{ marginBottom: "0.25rem", color: "var(--text-main)", fontSize: "0.95rem" }}>
+                {hasFormula ? (
+                  <span className="formula-inline">{item}</span>
+                ) : (
+                  item
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      );
+      currentListItems = [];
+    }
+  };
 
-    let headerText = "";
-    let contentText = trimmed;
-
-    if (equalsIndex !== -1) {
-      headerText = trimmed.substring(0, equalsIndex).trim();
-      contentText = trimmed.substring(equalsIndex).trim();
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushList(index);
+      return;
     }
 
-    // Clean up trailing punctuation from header text (like dashes, colons)
-    const cleanedHeader = headerText.replace(/[:\-\s\u2013\u2014]+$/, "").trim();
+    // Check if it's a bullet point
+    const bulletMatch = trimmed.match(/^[\-\*\u2022]\s+(.*)$/);
+    if (bulletMatch) {
+      currentListItems.push(bulletMatch[1]);
+      return;
+    }
 
-    // Check if header represents a CASE block
-    const isCase = cleanedHeader.toLowerCase().startsWith("case ");
+    // Flush any pending list items
+    flushList(index);
 
-    return (
-      <div key={index} className="note-section" style={{ marginBottom: "1rem" }}>
-        {cleanedHeader && (
-          <div className="note-section-heading" style={{ marginBottom: "0.5rem" }}>
-            {isCase ? (
-              <span className="case-badge">{cleanedHeader}</span>
-            ) : (
-              <strong style={{ color: "var(--text-main)", fontSize: "0.95rem" }}>{cleanedHeader}</strong>
-            )}
+    // Check if there is a CASE label block
+    const caseMatch = trimmed.match(/^(CASE \d+.*?)(?::|-|\s-\s|:-)(.*)$/i);
+    if (caseMatch) {
+      const caseLabel = caseMatch[1].trim();
+      const rest = caseMatch[2].trim();
+      const hasFormula = rest.includes(" = ") || rest.toLowerCase().includes("speed up =");
+
+      elements.push(
+        <div key={index} className="note-section" style={{ marginBottom: "0.75rem" }}>
+          <div style={{ marginBottom: "0.4rem" }}>
+            <span className="case-badge">{caseLabel}</span>
           </div>
-        )}
-        
-        {contentText && (
-          <div className={contentText.includes("=") ? "formula-block" : "note-section-text"}>
-            {contentText}
+          {rest && (
+            <div className={hasFormula ? "formula-block" : "note-section-text"}>
+              {rest}
+            </div>
+          )}
+        </div>
+      );
+      return;
+    }
+
+    // Check if there is a label followed by a formula on the same line (split by colon)
+    const colonIndex = trimmed.indexOf(":");
+    const equalsIndex = trimmed.indexOf(" = ");
+    const speedUpIndex = trimmed.toLowerCase().indexOf("speed up =");
+    const activeEqualsIndex = equalsIndex !== -1 ? equalsIndex : speedUpIndex;
+
+    if (colonIndex !== -1 && activeEqualsIndex !== -1 && colonIndex < activeEqualsIndex) {
+      const label = trimmed.substring(0, colonIndex + 1).trim();
+      const formulaPart = trimmed.substring(colonIndex + 1).trim();
+      
+      elements.push(
+        <div key={index} className="note-section" style={{ marginBottom: "0.75rem" }}>
+          <p className="note-section-text" style={{ fontWeight: 600, color: "var(--text-main)" }}>{label}</p>
+          <div className="formula-block">
+            {formulaPart}
           </div>
-        )}
-      </div>
-    );
+        </div>
+      );
+      return;
+    }
+
+    // Check if the entire line is a formula
+    const isFormula = trimmed.includes(" = ") || trimmed.toLowerCase().includes("speed up =");
+    if (isFormula) {
+      elements.push(
+        <div key={index} className="formula-block">
+          {trimmed}
+        </div>
+      );
+    } else {
+      elements.push(
+        <p key={index} className="note-section-text">
+          {trimmed}
+        </p>
+      );
+    }
   });
+
+  // Flush any final list items
+  flushList("final");
+
+  return elements;
 }
 
 export default function DailyRevisionNotes({ sessions, onDismiss }: DailyRevisionNotesProps) {
-  const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1); // 1 = Yesterday, 2 = 2 Days Ago, 3 = 3 Days Ago
-
   // Calculate day starts relative to local time
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -69,28 +135,46 @@ export default function DailyRevisionNotes({ sessions, onDismiss }: DailyRevisio
 
   // Filter and group sessions
   const categorizedNotes = {
+    0: [] as StudySession[], // Today
     1: [] as StudySession[], // Yesterday
     2: [] as StudySession[], // 2 Days Ago
     3: [] as StudySession[], // 3 Days Ago
+    4: [] as StudySession[], // Older
   };
 
   sessions.forEach((s) => {
     if (!s.notes || s.notes.trim() === "") return;
     
-    // Safety check: only allow Theory, Notes, and Mock Test in the notebook
-    const act = s.activity || "";
-    if (act !== "Theory" && act !== "Notes" && act !== "Mock Test") return;
-    
     const diffTime = startOfToday - s.endTime;
-    const diffDays = Math.ceil(diffTime / oneDayMs);
+    let diffDays = 0;
+    
+    if (diffTime > 0) {
+      diffDays = Math.ceil(diffTime / oneDayMs);
+    } else {
+      diffDays = 0; // Today
+    }
 
-    if (diffDays === 1) {
+    if (diffDays === 0) {
+      categorizedNotes[0].push(s);
+    } else if (diffDays === 1) {
       categorizedNotes[1].push(s);
     } else if (diffDays === 2) {
       categorizedNotes[2].push(s);
     } else if (diffDays === 3) {
       categorizedNotes[3].push(s);
+    } else {
+      categorizedNotes[4].push(s);
     }
+  });
+
+  // Initialize activeTab dynamically based on which tab contains notes
+  const [activeTab, setActiveTab] = useState<0 | 1 | 2 | 3 | 4>(() => {
+    if (categorizedNotes[1].length > 0) return 1; // Default to Yesterday if it has entries
+    if (categorizedNotes[0].length > 0) return 0;
+    if (categorizedNotes[2].length > 0) return 2;
+    if (categorizedNotes[3].length > 0) return 3;
+    if (categorizedNotes[4].length > 0) return 4;
+    return 1; // Fallback to Yesterday
   });
 
   const activeNotes = categorizedNotes[activeTab];
@@ -109,6 +193,14 @@ export default function DailyRevisionNotes({ sessions, onDismiss }: DailyRevisio
 
         {/* Tab Selectors */}
         <div className="revision-tabs">
+          <button 
+            id="btn-tab-today"
+            className={`revision-tab-btn ${activeTab === 0 ? "active" : ""}`} 
+            onClick={() => setActiveTab(0)}
+          >
+            <span>Today</span>
+            <span className="tab-count-badge">{categorizedNotes[0].length}</span>
+          </button>
           <button 
             id="btn-tab-yesterday"
             className={`revision-tab-btn ${activeTab === 1 ? "active" : ""}`} 
@@ -132,6 +224,14 @@ export default function DailyRevisionNotes({ sessions, onDismiss }: DailyRevisio
           >
             <span>3 Days Ago</span>
             <span className="tab-count-badge">{categorizedNotes[3].length}</span>
+          </button>
+          <button 
+            id="btn-tab-older"
+            className={`revision-tab-btn ${activeTab === 4 ? "active" : ""}`} 
+            onClick={() => setActiveTab(4)}
+          >
+            <span>Older</span>
+            <span className="tab-count-badge">{categorizedNotes[4].length}</span>
           </button>
         </div>
 
