@@ -1523,32 +1523,31 @@ body {
    STUDY ACTIVITY TIMELINE STYLE SYSTEM
    ========================================== */
 .timeline-card {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: var(--shadow);
 }
 
-.timeline-filters-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  align-items: center;
-  margin-bottom: 1.5rem;
+.timeline-filters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 1.25rem;
+  padding-bottom: 1rem;
 }
 
 .timeline-filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .timeline-filter-group label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -1559,13 +1558,13 @@ body {
   background: var(--bg-card-hover);
   border: 1px solid var(--border);
   color: var(--text-main);
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   outline: none;
-  min-width: 150px;
-  height: 36px;
+  width: 100%;
+  height: 32px;
   box-sizing: border-box;
 }
 
@@ -1576,16 +1575,15 @@ body {
 .timeline-checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 0.4rem;
+  font-size: 0.8rem;
   color: var(--text-main);
   cursor: pointer;
-  margin-top: 1.1rem;
 }
 
 .timeline-checkbox {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   cursor: pointer;
   accent-color: var(--accent);
 }
@@ -1594,21 +1592,22 @@ body {
 .timeline-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .timeline-row {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 
 .timeline-day-title {
-  width: 80px;
-  font-size: 0.85rem;
+  width: 60px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
   text-align: right;
+  white-space: nowrap;
 }
 
 .timeline-bar-container-outer {
@@ -1618,10 +1617,10 @@ body {
 
 .timeline-bar-track {
   position: relative;
-  height: 32px;
+  height: 22px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -1632,16 +1631,16 @@ body {
   top: 0;
   bottom: 0;
   width: 1px;
-  border-left: 1px dashed rgba(255, 255, 255, 0.06);
+  border-left: 1px dashed rgba(255, 255, 255, 0.05);
   pointer-events: none;
 }
 
 .timeline-segment {
   position: absolute;
   height: 80%;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
   top: 10%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
@@ -1649,8 +1648,8 @@ body {
 
 .timeline-segment:hover {
   transform: scaleY(1.15);
-  box-shadow: 0 0 12px currentColor;
-  filter: brightness(1.25);
+  box-shadow: 0 0 8px currentColor;
+  filter: brightness(1.2);
   z-index: 10;
 }
 
@@ -1658,9 +1657,9 @@ body {
 .timeline-axis-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.5rem;
-  padding-left: 92.5px; /* Matches row gap + label width */
-  font-size: 0.75rem;
+  margin-top: 0.35rem;
+  padding-left: 67.5px; /* Matches row gap + label width (60px + 7.5px) */
+  font-size: 0.65rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
@@ -1670,13 +1669,12 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
 }
 
 .timeline-block-item {
-  flex: 1;
-  min-width: 20px;
-  height: 36px;
+  width: calc(100% / 6 - 5px); /* Exactly 6 blocks per row */
+  height: 32px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1686,17 +1684,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .timeline-block-item:hover {
   transform: translateY(-2px);
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.15);
+  box-shadow: 0 4px 10px rgba(245, 166, 35, 0.12);
   z-index: 5;
 }
 
 .timeline-block-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-muted);
   pointer-events: none;
@@ -1708,29 +1707,29 @@ body {
 
 /* Hover Details Panel */
 .timeline-details-panel {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   background: rgba(21, 26, 40, 0.4);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-  min-height: 80px;
+  border-radius: 10px;
+  padding: 1rem;
+  min-height: 70px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .timeline-details-empty {
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-style: italic;
 }
 
 .timeline-details-grid {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .timeline-details-header {
@@ -1738,52 +1737,37 @@ body {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px dashed var(--border);
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.25rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .timeline-details-subj {
   font-weight: 700;
+  font-size: 0.85rem;
   color: var(--accent);
 }
 
 .timeline-details-time {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   background: var(--bg-card-hover);
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid var(--border);
 }
 
-@media (max-width: 768px) {
-  .timeline-filters-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-  
-  .timeline-input {
-    width: 100%;
-  }
-
-  .timeline-checkbox-label {
-    margin-top: 0.25rem;
-  }
-
-  .timeline-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
+@media (max-width: 480px) {
   .timeline-day-title {
-    width: 100%;
-    text-align: left;
+    width: 45px;
+    font-size: 0.75rem;
   }
-
   .timeline-axis-labels {
-    padding-left: 0;
+    padding-left: 52.5px;
+  }
+  .timeline-block-item {
+    width: calc(100% / 4 - 5px); /* 4 blocks per row on tiny screens */
   }
 }

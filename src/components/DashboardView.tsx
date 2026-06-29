@@ -130,8 +130,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
     return true;
   });
 
-  const totalMins = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
-  const totalHours = totalMins / 60;
+  const totalHours = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0) / 60;
   const totalQs = filteredSessions.reduce((acc, s) => acc + (s.questionsSolved || 0), 0);
   const sessionCount = filteredSessions.length;
 
@@ -219,12 +218,12 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
 
     return (
       <div className="timeline-bar-track">
-        {/* 3-hour grid lines */}
-        {[...Array(8)].map((_, i) => (
+        {/* Simplified grid lines at 6 AM (25%), 12 PM (50%), 6 PM (75%) */}
+        {[25, 50, 75].map((pos) => (
           <div 
-            key={i} 
+            key={pos} 
             className="timeline-grid-line" 
-            style={{ left: `${(i + 1) * 12.5}%` }} 
+            style={{ left: `${pos}%` }} 
           />
         ))}
         
@@ -235,7 +234,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
             className="timeline-segment"
             style={{
               left: `${seg.left}%`,
-              width: `${Math.max(0.6, seg.width)}%`,
+              width: `${Math.max(0.8, seg.width)}%`,
               backgroundColor: seg.color,
               color: seg.color
             }}
@@ -251,13 +250,9 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
   const renderTimeAxisLabels = () => (
     <div className="timeline-axis-labels">
       <span>12 AM</span>
-      <span>3 AM</span>
       <span>6 AM</span>
-      <span>9 AM</span>
       <span>12 PM</span>
-      <span>3 PM</span>
       <span>6 PM</span>
-      <span>9 PM</span>
       <span>12 AM</span>
     </div>
   );
@@ -354,7 +349,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               style={{
                 backgroundColor: m.hasData ? `${color}22` : "rgba(255, 255, 255, 0.02)",
                 borderColor: m.hasData ? color : "var(--border)",
-                height: "44px"
+                height: "36px"
               }}
               onMouseEnter={() => setHoveredDaySummary({
                 date: m.label,
@@ -366,7 +361,7 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
             >
               <span 
                 className="timeline-block-label"
-                style={{ fontSize: "0.8rem", color: m.hasData ? "#fff" : "var(--text-muted)" }}
+                style={{ fontSize: "0.75rem", color: m.hasData ? "#fff" : "var(--text-muted)" }}
               >
                 {m.label}
               </span>
@@ -484,120 +479,6 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Interactive Activity Timeline Card */}
-      <div className="timeline-card full-width">
-        <div className="timeline-filters-row">
-          <div className="timeline-filter-group">
-            <label>Timeframe</label>
-            <select
-              className="timeline-input"
-              value={timelineTimeframe}
-              onChange={(e) => setTimelineTimeframe(e.target.value as any)}
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
-
-          <div className="timeline-filter-group">
-            <label>Subject</label>
-            <select
-              className="timeline-input"
-              value={timelineSubject}
-              onChange={(e) => setTimelineSubject(e.target.value)}
-            >
-              <option value="all">All Subjects</option>
-              {GATE_SUBJECTS.map(s => (
-                <option key={s.name} value={s.name}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="timeline-filter-group" style={{ flex: 1, minWidth: "160px" }}>
-            <label>Topic</label>
-            <input
-              type="text"
-              className="timeline-input"
-              style={{ width: "100%" }}
-              placeholder="Search topic notes..."
-              value={timelineTopic}
-              onChange={(e) => setTimelineTopic(e.target.value)}
-            />
-          </div>
-
-          <label className="timeline-checkbox-label">
-            <input
-              type="checkbox"
-              className="timeline-checkbox"
-              checked={timelineHasQuestions}
-              onChange={(e) => setTimelineHasQuestions(e.target.checked)}
-            />
-            With Questions Solved
-          </label>
-        </div>
-
-        {/* Timeline Visualization */}
-        <div style={{ padding: "0.5rem 0" }}>
-          {renderTimelineGraph()}
-        </div>
-
-        {/* Interactive details box */}
-        <div className="timeline-details-panel">
-          {hoveredSession ? (
-            <div className="timeline-details-grid">
-              <div className="timeline-details-header">
-                <span className="timeline-details-subj"># {hoveredSession.subject}</span>
-                <span className="timeline-details-time">
-                  {new Date(hoveredSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(hoveredSession.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                {hoveredSession.topic && (
-                  <p style={{ margin: '0 0 0.4rem 0' }}>
-                    <strong>Topic:</strong> {hoveredSession.topic}
-                  </p>
-                )}
-                <p style={{ margin: '0 0 0.4rem 0' }}>
-                  <strong>Duration:</strong> {hoveredSession.durationMinutes} minutes ({hoveredSession.activity})
-                </p>
-                {(hoveredSession.questionsSolved !== undefined || hoveredSession.unsolvedQuestions !== undefined) && (
-                  <p style={{ margin: '0 0 0.4rem 0' }}>
-                    <strong>Questions:</strong> {hoveredSession.questionsSolved || 0} solved, {hoveredSession.unsolvedQuestions || 0} incorrect
-                  </p>
-                )}
-                {hoveredSession.notes && (
-                  <p style={{ margin: '0.4rem 0 0 0', fontStyle: 'italic', fontSize: '0.85rem', borderLeft: '2px solid var(--border)', paddingLeft: '0.5rem', color: 'var(--text-muted)' }}>
-                    "{hoveredSession.notes}"
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : hoveredDaySummary ? (
-            <div className="timeline-details-grid">
-              <div className="timeline-details-header">
-                <span className="timeline-details-subj" style={{ color: 'var(--accent)' }}>{hoveredDaySummary.date}</span>
-                <span className="timeline-details-time">{hoveredDaySummary.hours.toFixed(1)} hours studied</span>
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                <p style={{ margin: '0 0 0.4rem 0' }}>
-                  <strong>Questions Solved:</strong> {hoveredDaySummary.questions} Qs
-                </p>
-                <p style={{ margin: '0' }}>
-                  <strong>Subjects Studied:</strong> {hoveredDaySummary.subjects.join(', ') || 'None'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="timeline-details-empty">
-              Hover over a colored timeline segment or block to view detailed activity logs.
-            </div>
-          )}
         </div>
       </div>
 
@@ -727,6 +608,125 @@ export default function DashboardView({ sessions, settings, userName }: Dashboar
                 <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "2rem 0" }}>
                   No sessions logged matching selected filters.
                 </p>
+              )}
+            </div>
+          </div>
+
+          {/* Interactive Activity Timeline Card (repositioned under Activity Log) */}
+          <div className="timeline-card">
+            <h3 style={{ fontSize: "0.95rem", fontWeight: 700, margin: "0 0 1rem 0", color: "var(--text-main)" }}>
+              Study Session Timeline
+            </h3>
+            
+            <div className="timeline-filters-grid">
+              <div className="timeline-filter-group">
+                <label>Timeframe</label>
+                <select
+                  className="timeline-input"
+                  value={timelineTimeframe}
+                  onChange={(e) => setTimelineTimeframe(e.target.value as any)}
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+
+              <div className="timeline-filter-group">
+                <label>Subject</label>
+                <select
+                  className="timeline-input"
+                  value={timelineSubject}
+                  onChange={(e) => setTimelineSubject(e.target.value)}
+                >
+                  <option value="all">All Subjects</option>
+                  {GATE_SUBJECTS.map(s => (
+                    <option key={s.name} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="timeline-filter-group" style={{ gridColumn: "span 2" }}>
+                <label>Topic</label>
+                <input
+                  type="text"
+                  className="timeline-input"
+                  placeholder="Filter topic notes..."
+                  value={timelineTopic}
+                  onChange={(e) => setTimelineTopic(e.target.value)}
+                />
+              </div>
+
+              <div style={{ gridColumn: "span 2" }}>
+                <label className="timeline-checkbox-label">
+                  <input
+                    type="checkbox"
+                    className="timeline-checkbox"
+                    checked={timelineHasQuestions}
+                    onChange={(e) => setTimelineHasQuestions(e.target.checked)}
+                  />
+                  With Questions Solved
+                </label>
+              </div>
+            </div>
+
+            {/* Timeline Visualization */}
+            <div style={{ padding: "0.25rem 0" }}>
+              {renderTimelineGraph()}
+            </div>
+
+            {/* Interactive details box */}
+            <div className="timeline-details-panel">
+              {hoveredSession ? (
+                <div className="timeline-details-grid">
+                  <div className="timeline-details-header">
+                    <span className="timeline-details-subj"># {hoveredSession.subject}</span>
+                    <span className="timeline-details-time">
+                      {new Date(hoveredSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(hoveredSession.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                    {hoveredSession.topic && (
+                      <p style={{ margin: '0 0 0.3rem 0' }}>
+                        <strong>Topic:</strong> {hoveredSession.topic}
+                      </p>
+                    )}
+                    <p style={{ margin: '0 0 0.3rem 0' }}>
+                      <strong>Duration:</strong> {hoveredSession.durationMinutes}m ({hoveredSession.activity})
+                    </p>
+                    {(hoveredSession.questionsSolved !== undefined || hoveredSession.unsolvedQuestions !== undefined) && (
+                      <p style={{ margin: '0 0 0.3rem 0' }}>
+                        <strong>Questions:</strong> {hoveredSession.questionsSolved || 0} solved, {hoveredSession.unsolvedQuestions || 0} incorrect
+                      </p>
+                    )}
+                    {hoveredSession.notes && (
+                      <p style={{ margin: '0.3rem 0 0 0', fontStyle: 'italic', fontSize: '0.8rem', borderLeft: '2px solid var(--border)', paddingLeft: '0.4rem', color: 'var(--text-muted)' }}>
+                        "{hoveredSession.notes}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : hoveredDaySummary ? (
+                <div className="timeline-details-grid">
+                  <div className="timeline-details-header">
+                    <span className="timeline-details-subj" style={{ color: 'var(--accent)' }}>{hoveredDaySummary.date}</span>
+                    <span className="timeline-details-time">{hoveredDaySummary.hours.toFixed(1)}h studied</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                    <p style={{ margin: '0 0 0.3rem 0' }}>
+                      <strong>Questions Solved:</strong> {hoveredDaySummary.questions} Qs
+                    </p>
+                    <p style={{ margin: '0' }}>
+                      <strong>Subjects:</strong> {hoveredDaySummary.subjects.join(', ') || 'None'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="timeline-details-empty">
+                  Hover over a segment or block to view logs.
+                </div>
               )}
             </div>
           </div>
