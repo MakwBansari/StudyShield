@@ -51,9 +51,7 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
       blacklist: cleanBlacklist,
     });
     
-    // Save user name
-    const updatedUser = { ...user, name };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
+    StorageAPI.updateCurrentUserName(name.trim());
     
     alert("Profile settings updated!");
     onUpdate();
@@ -124,8 +122,9 @@ export default function ProfileView({ user, settings, onUpdate }: ProfileViewPro
   };
 
   const handleReset = () => {
-    if (confirm("Are you SURE you want to delete all study data?")) {
-      localStorage.clear();
+    if (confirm("Are you SURE you want to delete this account's study data?")) {
+      StorageAPI.resetCurrentUserData();
+      StorageAPI.logout();
       window.location.href = "/";
     }
   };

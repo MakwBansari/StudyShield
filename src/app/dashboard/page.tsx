@@ -26,14 +26,15 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
+    const currentUser = StorageAPI.getCurrentUserProfile();
+    if (!currentUser) {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    setUser(currentUser);
     const currentSettings = StorageAPI.getSettings();
     setSettings(currentSettings);
+    StorageAPI.syncExtensionSettings();
     const allSessions = StorageAPI.getSessions();
     setSessions(allSessions);
     setTests(StorageAPI.getMockTests());
@@ -45,10 +46,8 @@ export default function DashboardPage() {
       setShowBriefing(true);
     }
   }, [router]);
-
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("currentUser");
+    StorageAPI.logout();
     router.push("/");
   };
 
@@ -138,8 +137,7 @@ export default function DashboardPage() {
               settings={settings} 
               onUpdate={() => {
                 setSettings(StorageAPI.getSettings());
-                const storedUser = localStorage.getItem("user");
-                if (storedUser) setUser(JSON.parse(storedUser));
+                setUser(StorageAPI.getCurrentUserProfile());
               }} 
             />
           )}

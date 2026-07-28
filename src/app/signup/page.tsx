@@ -21,7 +21,6 @@ export default function SignupPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("user", JSON.stringify({ name: formData.name, email: formData.email }));
     
     // Parse and sanitize whitelist and blacklist
     const sanitize = (url: string) => {
@@ -40,7 +39,22 @@ export default function SignupPage() {
     const whitelistArr = Array.from(new Set(formData.whitelist.split("\n").map(sanitize).filter(Boolean)));
     const blacklistArr = Array.from(new Set(formData.blacklist.split("\n").map(sanitize).filter(Boolean)));
 
-    // Save preferences
+    const registration = StorageAPI.registerUser({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      preferences: {
+        whitelist: whitelistArr,
+        blacklist: blacklistArr,
+      },
+    });
+
+    if (!registration.ok) {
+      alert(registration.message || "Unable to create account.");
+      return;
+    }
+
+    StorageAPI.setCurrentUser(formData.email);
     StorageAPI.saveSettings({
       whitelist: whitelistArr,
       blacklist: blacklistArr,

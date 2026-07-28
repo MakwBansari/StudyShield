@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { StorageAPI } from "@/lib/storage";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,20 +12,15 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login logic
-    const existingUser = localStorage.getItem("user");
-    let name = "";
-    if (existingUser) {
-      try {
-        const parsed = JSON.parse(existingUser);
-        if (parsed.email === email) {
-          name = parsed.name || "";
-        }
-      } catch (e) {
-        // ignore parse error
-      }
+
+    const auth = StorageAPI.authenticateUser(email, password);
+    if (!auth.ok) {
+      alert(auth.message || "Login failed.");
+      return;
     }
-    localStorage.setItem("user", JSON.stringify({ email, name }));
+
+    StorageAPI.setCurrentUser(email);
+    StorageAPI.syncExtensionSettings();
     router.push("/dashboard");
   };
 
